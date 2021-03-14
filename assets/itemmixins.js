@@ -57,6 +57,22 @@ Game.ItemMixins.Equippable = {
     isWearable: function() {
         return this._wearable;
     },
+    getSuffix: function() {
+        var attack = this.getAttackValue();
+        var defense = this.getDefenseValue();
+        var suffix = '';
+        if (attack > 0) {
+            suffix += ' {+' + attack;
+            if (defense > 0) {
+                suffix += " atk, +" + defense + " def}";
+            } else {
+                suffix += " atk}";
+            }
+        } else if (defense > 0) {
+            suffix += ' {+' + defense + " def}";
+        }
+        return suffix;
+    },
     listeners: {
         'details': function() {
             var results = [];

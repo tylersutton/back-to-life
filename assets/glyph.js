@@ -30,7 +30,7 @@ Game.Glyph.prototype.setForeground = function(newColor) {
     this._foreground = newColor;
 };
 Game.Glyph.prototype.scaleForeground = function(scale) {
-    var min = 40;
+    var min = 70;
     var max = 255;
     var colors = ROT.Color.fromString(this._foreground);
     var defaultColors = ROT.Color.fromString(this._defaultForeground);

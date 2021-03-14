@@ -603,6 +603,7 @@ Game.EntityMixins.InventoryHolder = {
             if (this._map) {
                 this._map.addItem(this.getX(), this.getY(), this.getZ(), this._items[i]);
             }
+            //console.log("dropped item");
             Game.sendMessage(this, "You drop %s.", [this._items[i].describeThe()]);
             this.removeItem(i);      
         }

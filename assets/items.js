@@ -79,7 +79,7 @@ Game.ItemRepository.define('woodenStaff', {
     attackValue: 1,
     defenseValue: 1,
     wieldable: true,
-    minZLevel: 2,
+    maxZLevel: 3,
     mixins: [Game.ItemMixins.Equippable]
 }, {
     //disableRandomCreation: true
