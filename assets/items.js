@@ -22,6 +22,17 @@ Game.ItemRepository.define('dagger', {
     //disableRandomCreation: true
 });
 
+Game.ItemRepository.define('axe', {
+    name: 'axe',
+    character: '\\',
+    foreground: '(rgb(175,175,175)',
+    attackValue: 2,
+    wieldable: true,
+    circleAttack: true,
+    maxZLevel: 4,
+    mixins: [Game.ItemMixins.Equippable]
+});
+
 Game.ItemRepository.define('stick', {
     name: 'stick',
     character: '/',

@@ -99,7 +99,10 @@ Game.Entity.prototype.tryMove = function(x, y, z, map) {
         if (this.hasMixin('Attacker') && 
             (this.hasMixin(Game.EntityMixins.PlayerActor) ||
              target.hasMixin(Game.EntityMixins.PlayerActor))) {
-            this.attack(target);
+            if (this.hasMixin("Equipper") && this.getWeapon() && this.getWeapon().circleAttack) {
+
+            }
+                this.attack(target);
             return true;
         }
         return false;
