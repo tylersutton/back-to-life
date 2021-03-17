@@ -232,7 +232,7 @@ Game.EntityMixins.Attacker = {
     attack: function(target) {
         // If the target is destructible, calculate the damage
         // based on attack and defense value
-        if (target.hasMixin('Destructible')) {
+        if (this != target && target.hasMixin('Destructible')) {
             var attack = this.getAttackValue();
             var defense = target.getDefenseValue();
             var damage;
@@ -317,7 +317,7 @@ Game.EntityMixins.Destructible = {
         if (this._hp <= 0) {
             this._hp = 0;
             Game.sendMessage(attacker, 'You defeat the %s!', [this.getName()]);
-            if (this.hasMixin('InventoryHolder')) {
+            if (this.hasMixin('InventoryHolder') && !this.hasMixin('PlayerActor')) {
                 this.dropItems();
             }
             this.raiseEvent('onDeath', attacker);

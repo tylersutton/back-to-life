@@ -37,33 +37,26 @@ Game.Screen.startScreen = {
         titleHeight++
         display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description1.length / 2)),
                         titleHeight++, 
-                        "%c{darkgrey}" + description1
-        );
+                        "%c{darkgrey}" + description1);
         display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description2.length / 2)),
                         titleHeight++, 
-                        "%c{darkgrey}" + description2
-        );
+                        "%c{darkgrey}" + description2);
         display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description3.length / 2)),
                         titleHeight++, 
-                        "%c{darkgrey}" + description3
-        );
+                        "%c{darkgrey}" + description3);
         display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description4.length / 2)),
                         titleHeight++, 
-                        "%c{darkgrey}" + description4
-        );
+                        "%c{darkgrey}" + description4);
         display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description5.length / 2)),
                         titleHeight++, 
-                        "%c{darkgrey}" + description5
-        );
+                        "%c{darkgrey}" + description5);
         display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description6.length / 2)),
                         titleHeight++, 
-                        "%c{darkgrey}" + description6
-        );
+                        "%c{darkgrey}" + description6);
         titleHeight+= 2;
         display.drawText(Math.floor((Game._menuScreenWidth / 2) - (prompt.length / 2)),
                         titleHeight++, 
-                        "%c{white}" + prompt
-        );
+                        "%c{white}" + prompt);
     },
     handleInput: function(inputType, inputData) {
         // When [Enter] is pressed, go to the play screen
@@ -223,6 +216,8 @@ Game.Screen.playScreen = {
                 this.move(1, 1, 0);
             } else if (inputData.keyCode === 97) { // down-left
                 this.move(-1, 1, 0);
+            } else if (inputData.key === 'z') { // wait
+                this.move(0, 0, 0);
             } else if (inputData.key === 'Enter') {
                 if (map.getTile(this._player.getX(), this._player.getY(), this._player.getZ()).isStairsUp()) {
                     this.move(0, 0, -1);
@@ -241,17 +236,6 @@ Game.Screen.playScreen = {
                     this.setSubScreen(Game.Screen.inventoryScreen);
                 }
                 return;
-            } else if (inputData.key === 'd') {
-                    if (this._player.getItems().filter(function(x){return x;}).length === 0) {
-                        // If the player has no items, send a message and don't take a turn
-                        Game.sendMessage(this._player, "You have nothing to drop.");
-                        Game.refresh();
-                    } else {
-                        // Show the drop screen
-                        Game.Screen.dropScreen.setup(this._player, this._player.getItems());
-                        this.setSubScreen(Game.Screen.dropScreen);
-                    }
-                    return; 
             } else if (inputData.key === 'h') {
                 // Show the drop screen
                 if (Game.Screen.healScreen.setup(this._player, this._player.getItems())) {
@@ -260,23 +244,6 @@ Game.Screen.playScreen = {
                     Game.sendMessage(this._player, "You have nothing to heal with.");
                     Game.refresh();
                 }
-                return;
-            } else if (inputData.key === 'w') {
-                // Show the wield screen
-                this.showItemsSubScreen(Game.Screen.wieldScreen, this._player.getItems(),
-                    'You have no weapons to wield.');
-                Game.refresh();
-                return;
-            } else if (inputData.key === 'W')  {
-                // Show the wear screen
-                this.showItemsSubScreen(Game.Screen.wearScreen, this._player.getItems(),
-                    'You have no armor to wear.');
-                Game.refresh();
-                return;
-            } else if (inputData.key == 'x') {
-                // Show the drop screen
-                this.showItemsSubScreen(Game.Screen.examineScreen, this._player.getItems(),
-                   'You have nothing to examine.');
                 return;
             } else if (inputData.key === ';') {
                 // Setup the look screen.
@@ -684,56 +651,6 @@ Game.Screen.healScreen = new Game.Screen.ItemListScreen({
     }
 });
 
-Game.Screen.wieldScreen = new Game.Screen.ItemListScreen({
-    caption: 'Choose an item to wield',
-    canSelect: true,
-    canSelectMultipleItems: false,
-    hasNoItemOption: true,
-    isAcceptable: function(item) {
-        return item && item.hasMixin('Equippable') && item.isWieldable();
-    },
-    ok: function(selectedItems) {
-        // Check if we selected 'no item'
-        var keys = Object.keys(selectedItems);
-        if (keys.length === 0) {
-            this._player.unwield();
-            Game.sendMessage(this._player, "You are empty handed.")
-        } else {
-            // Make sure to unequip the item first in case it is the armor.
-            var item = selectedItems[keys[0]];
-            this._player.unequip(item);
-            this._player.wield(item);
-            Game.sendMessage(this._player, "You are wielding %s.", [item.describeA()]);
-        }
-        return true;
-    }
-});
-
-Game.Screen.wearScreen = new Game.Screen.ItemListScreen({
-    caption: 'Choose an item to wear',
-    canSelect: true,
-    canSelectMultipleItems: false,
-    hasNoItemOption: true,
-    isAcceptable: function(item) {
-        return item && item.hasMixin('Equippable') && item.isWearable();
-    },
-    ok: function(selectedItems) {
-        // Check if we selected 'no item'
-        var keys = Object.keys(selectedItems);
-        if (keys.length === 0) {
-            this._player.takeOff();
-            Game.sendMessage(this._player, "You are not wearing anything.")
-        } else {
-            // Make sure to unequip the item first in case it is the weapon.
-            var item = selectedItems[keys[0]];
-            this._player.unequip(item);
-            this._player.wear(item);
-            Game.sendMessage(this._player, "You are wearing %s.", [item.describeA()]);
-        }
-        return true;
-    }
-});
-
 Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
     caption: 'Inventory',
     canSelect: true,
@@ -832,17 +749,6 @@ Game.Screen.pickupScreen = new Game.Screen.ItemListScreen({
     }
 });
 
-Game.Screen.dropScreen = new Game.Screen.ItemListScreen({
-    caption: 'Choose the item you wish to drop.',
-    canSelect: true,
-    canSelectMultipleItems: false,
-    ok: function(selectedItems) {
-        // Drop the selected item
-        this._player.dropItem(Object.keys(selectedItems)[0]);
-        return true;
-    }
-});
-
 Game.Screen.gainStatScreen = {
     setup: function(entity) {
         // Must be called before rendering.
@@ -888,28 +794,6 @@ Game.Screen.gainStatScreen = {
     }
 };
 
-Game.Screen.examineScreen = new Game.Screen.ItemListScreen({
-    caption: 'Choose the item you wish to examine',
-    canSelect: true,
-    canSelectMultipleItems: false,
-    isAcceptable: function(item) {
-        return item !== undefined;
-    },
-    ok: function(selectedItems) {
-        var keys = Object.keys(selectedItems);
-        if (keys.length > 0) {
-            var item = selectedItems[keys[0]];
-            //("selected item to examine: " + item);
-            Game.sendMessage(this._player, "It's %s (%s).", 
-                [
-                    item.describeA(false),
-                    item.getDetails()
-                ]);
-        }
-        return true;
-    }
-});
-
 // Define our help screen
 Game.Screen.helpScreen = {
     render: function(display) {
@@ -918,18 +802,18 @@ Game.Screen.helpScreen = {
         var y = 0;
         display.drawText((Game._menuScreenWidth / 2) - (text.length / 2), y++, text);
         display.drawText((Game._menuScreenWidth / 2) - (text.length / 2), y++, border);
-        display.drawText(0, y++, "You've been wrongly sent to Hell. Find the Ruler of Hell and defeat him to come back to life!");
-        y += 2;
+        //display.drawText(0, y++, "You've been wrongly sent to Hell. Find the Ruler of Hell and defeat him to come back to life!");
+        y++;
+        display.drawText(0, y++, 'Controls:');
+        y++;
         display.drawText(0, y++, 'Arrow keys/numpad to move and attack');
         display.drawText(0, y++, '[Enter] to use stairs');
         display.drawText(0, y++, '[Enter] or [Esc] to exit menus');
-        display.drawText(0, y++, '[d] to drop items');
-        display.drawText(0, y++, '[h] to heal with items');
+        display.drawText(0, y++, '[h] to quick-heal with an item');
+        display.drawText(0, y++, '[i] to open inventory');
         display.drawText(0, y++, '[p] to pick up items');
         display.drawText(0, y++, '[s] to use stat points');
-        display.drawText(0, y++, '[w] to wield items');
-        display.drawText(0, y++, '[W] to wear items');
-        display.drawText(0, y++, '[x] to examine items');
+        display.drawText(0, y++, '[z] to wait a turn');
         display.drawText(0, y++, '[;] to look around you');
         display.drawText(0, y++, '[?] to show this help screen');
         y ++;
@@ -941,6 +825,7 @@ Game.Screen.helpScreen = {
         Game.Screen.playScreen.setSubScreen(null);
     }
 };
+
 
 Game.Screen.TargetBasedScreen = function(template) {
     template = template || {};

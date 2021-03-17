@@ -60,7 +60,7 @@ Game.EntityRepository.define('Demon', {
     maxHp: 50,
     baseAttackValue: 10,
     attackDice: 6,
-    speed: 1200,
+    speed: 1000,
     sightRadius: 5,
     minZLevel: 10,
     tasks: ['hunt', 'wander'],

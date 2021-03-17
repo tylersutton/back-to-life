@@ -40,6 +40,17 @@ Game.Glyph.prototype.scaleForeground = function(scale) {
     }
     this._foreground = ROT.Color.toRGB(colors);
 };
+Game.Glyph.prototype.scaleBackground = function(scale) {
+    var min = 70;
+    var max = 255;
+    var colors = ROT.Color.fromString(this._background);
+    var defaultColors = ROT.Color.fromString(this._defaultBackground);
+    for (var i = 0; i < 3; i++) {
+        colors[i] = Math.floor((defaultColors[i] - min) * scale + min);
+        ROT.Util.clamp(colors[i], min, max);
+    }
+    this._background = ROT.Color.toRGB(colors);
+};
 
 Game.Glyph.prototype.getRepresentation = function() {
     return '%c{' + this._foreground + '}%b{' + this._background + '}' + this._char +
