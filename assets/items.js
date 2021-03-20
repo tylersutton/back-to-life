@@ -1,5 +1,6 @@
 Game.ItemRepository = new Game.Repository('items', Game.Item);
 
+//#region Healing Items
 Game.ItemRepository.define('soulVial', {
     name: 'soul vial',
     character: '!',
@@ -8,7 +9,9 @@ Game.ItemRepository.define('soulVial', {
     isEmpty: false,
     mixins: [Game.ItemMixins.Healing]
 });
+//#endregion
 
+//#region Ranged Weapons
 Game.ItemRepository.define('shortbow', {
     name: 'shortbow',
     character: '}',
@@ -18,8 +21,9 @@ Game.ItemRepository.define('shortbow', {
     ranged: true,
     mixins: [Game.ItemMixins.Equippable]
 });
+// #endregion
 
-// Weapons
+//#region Melee Weapons
 Game.ItemRepository.define('dagger', {
     name: 'dagger',
     character: '|',
@@ -133,8 +137,9 @@ Game.ItemRepository.define('steelStaff', {
 }, {
     //disableRandomCreation: true
 });
+//#endregion
 
-// Wearables
+//#region Wearables
 Game.ItemRepository.define('tunic', {
     name: 'tunic',
     character: '(',
@@ -197,3 +202,4 @@ Game.ItemRepository.define('steelPlatemail', {
 }, {
    // disableRandomCreation: true
 });
+//#endregion

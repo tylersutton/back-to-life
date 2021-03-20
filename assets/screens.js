@@ -475,6 +475,7 @@ Game.Screen.uiScreen = {
     }
 };
 
+//#region ItemListScreen
 Game.Screen.ItemListScreen = function(template) {
     // Set up based on the template
     this._caption = template['caption'];
@@ -672,6 +673,7 @@ Game.Screen.ItemListScreen.prototype.handleInput = function(inputType, inputData
         }
     }
 };
+//#endregion
 
 Game.Screen.healScreen = new Game.Screen.ItemListScreen({
     caption: 'Choose an item to heal with',
@@ -867,7 +869,7 @@ Game.Screen.helpScreen = {
     }
 };
 
-
+//#region TargetBasedScreen
 Game.Screen.TargetBasedScreen = function(template) {
     template = template || {};
     // By default, our ok return does nothing and does not consume a turn.
@@ -996,6 +998,7 @@ Game.Screen.TargetBasedScreen.prototype.executeOkFunction = function() {
         this._player.getMap().getEngine().unlock();
     }
 };
+//#endregion
 
 Game.Screen.lookScreen = new Game.Screen.TargetBasedScreen({
     captionFunction: function(x, y) {
