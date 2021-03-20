@@ -11,7 +11,7 @@ var Game = {
 	_currentScreen: null,
 	_screenWidth: 30,
     _screenHeight: 20,
-    _fontSize: 24,
+    _fontSize: 26,
     _menuScreenWidth: 50,
     _uiWidth: 60,
     _uiHeight: 8,
@@ -29,6 +29,7 @@ var Game = {
         }
         this._display = new ROT.Display(options);
         this._display.getContainer().setAttribute('id', "game");
+        
         var uiOptions = {
             width: this._uiWidth,
             height: this._uiHeight,

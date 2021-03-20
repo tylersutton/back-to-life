@@ -20,6 +20,7 @@ Game.EntityMixins.PlayerActor = {
         // Lock the engine and wait asynchronously
         // for the player to press a key.
         this.getMap().getEngine().lock();
+        window.addEventListener("keydown", this); /* wait for input */
         this._acting = false;
     }
 };
@@ -249,6 +250,36 @@ Game.EntityMixins.Attacker = {
                 [this.getName(), damage]);
 
             target.takeDamage(this, damage);
+        }
+    },
+    rangedAttack: function(x, y) {
+        console.log("called ranged attack.")
+        if (this.hasMixin('Equipper') && this.getWeapon() && this.getWeapon().isRanged()) {
+            console.log("can shoot a weapon")
+            var line = Game.getLine(this.getX(), this.getY(), x, y);
+            var path = [];
+            var target = null;
+            Game.sendMessage(this, 'You fire %s.', [this.getWeapon().describeThe()]);
+            for (var i = 0; i < line.length; i++) {
+                path.push(line[i]);
+                target = this.getMap().getEntityAt(path[i].x, path[i].y, this.getZ());
+                if (target && this != target) {
+                    i = line.length;
+                }
+            }
+            Game.Screen.playScreen._waiting = true;
+            this.getMap().getEngine().lock();
+            var that = this;
+            new Game.Arrow({path: path}).go().then(function() {
+                if (target && that != target) {
+                    that.attack(target);
+                } else {
+                    Game.sendMessage(that, "You didn't hit anything.");
+                }
+                that.getMap().getEngine().unlock();
+                Game.refresh();
+                Game.Screen.playScreen._waiting = false;
+            });
         }
     },
     listeners: {

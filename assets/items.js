@@ -9,6 +9,16 @@ Game.ItemRepository.define('soulVial', {
     mixins: [Game.ItemMixins.Healing]
 });
 
+Game.ItemRepository.define('shortbow', {
+    name: 'shortbow',
+    character: '}',
+    foreground: 'rgb(130,100,50)',
+    attackValue: 2,
+    wieldable: true,
+    ranged: true,
+    mixins: [Game.ItemMixins.Equippable]
+});
+
 // Weapons
 Game.ItemRepository.define('dagger', {
     name: 'dagger',

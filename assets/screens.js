@@ -77,8 +77,10 @@ Game.Screen.playScreen = {
     _screenOffsetX: null,
     _screenOffsetY: null,
     _gameEnded: null,
+    _waiting: null,
     _subScreen: null,
     _generator: null,
+    _effects: null,
     enter: function() {  
         Game._display.setOptions({
             width: Game._screenWidth,
@@ -107,9 +109,12 @@ Game.Screen.playScreen = {
         // Create our map from the tiles
         var map = new Game.Map.Dungeon(tiles, this._player);
         
+        this._effects = {};
+
         // reset gameEnded if game was restarted
         this._gameEnded = false;
 
+        this._waiting = false;
         // Start the map's engine
         map.getEngine().start();
     },
@@ -123,6 +128,8 @@ Game.Screen.playScreen = {
         }
         // Render map tiles
         this.renderTiles(display, this._subScreen);
+
+        this.renderEffects(display);
 
         // Get the messages in the player's queue and render them
         Game.Screen.uiScreen.render(this._player, uiDisplay);
@@ -182,9 +189,29 @@ Game.Screen.playScreen = {
             }
         }
     },
+    renderEffects: function(display) {
+        var screenWidth = Game.getScreenWidth();
+        var screenHeight = Game.getScreenHeight();
+        for (var x = 0; x < screenWidth; x++) {
+            for (var y = 0; y < screenHeight; y++) {
+                if (this._effects[x+','+y]) {
+                    display.draw(x, y, this._effects[x+','+y]);
+                }
+            }
+        }
+    },
+    addEffect: function(x, y, char) {
+        this._effects[x+','+y] = char;
+        Game.refresh();
+    },
+    removeEffect: function(x, y) {
+        this._effects[x+","+y] = null;
+        Game.refresh();
+    },
     handleInput: function(inputType, inputData) {
         // If the game is over, enter will bring the user to the losing screen.
         var map = this._player.getMap();
+        var shot = false;
         if (this._gameEnded) {
             if (inputType === 'keydown' && inputData.key === 'Enter') {
                 Game.switchScreen(Game.Screen.startScreen);
@@ -198,7 +225,7 @@ Game.Screen.playScreen = {
             return;
         } 
         // Handle playScreen input
-        else if (inputType === 'keydown') {
+        else if (inputType === 'keydown' && !this._waiting) {
             // Movement
             if ([37, 100].includes(inputData.keyCode)) { // left
                 this.move(-1, 0, 0);
@@ -217,7 +244,7 @@ Game.Screen.playScreen = {
             } else if (inputData.keyCode === 97) { // down-left
                 this.move(-1, 1, 0);
             } else if (inputData.key === 'z') { // wait
-                this.move(0, 0, 0);
+                this.move(0, 0, 0);   
             } else if (inputData.key === 'Enter') {
                 if (map.getTile(this._player.getX(), this._player.getY(), this._player.getZ()).isStairsUp()) {
                     this.move(0, 0, -1);
@@ -245,14 +272,21 @@ Game.Screen.playScreen = {
                     Game.refresh();
                 }
                 return;
-            } else if (inputData.key === ';') {
+            } else if (inputData.key === 'l') {
                 // Setup the look screen.
                 Game.sendMessage(this._player, "Press [Esc] or [Enter] to cancel.");
                 Game.Screen.lookScreen.setup(this._player,
                     this._player.getX(), this._player.getY());
                 this.setSubScreen(Game.Screen.lookScreen);
                 return;
-            }else if (inputData.key === 'p') {
+            } else if (inputData.key === 'f') {
+                // Setup the aim screen.
+                Game.sendMessage(this._player, "Press [Enter] to fire or [Esc] to cancel.");
+                Game.Screen.aimScreen.setup(this._player,
+                    this._player.getX(), this._player.getY());
+                this.setSubScreen(Game.Screen.aimScreen);
+                return;
+            } else if (inputData.key === 'p') {
                 var items = map.getItemsAt(this._player.getX(), this._player.getY(), this._player.getZ());
                 // If there are no items, show a message
                 if (!items) {
@@ -340,6 +374,12 @@ Game.Screen.playScreen = {
         this._player.tryMove(newX, newY, newZ, this._player.getMap());
         // Unlock the engine
         this._player.getMap().getEngine().unlock();
+        if (newX == this._player.getX() &&
+                newY == this._player.getY() &&
+                newZ == this._player.getZ()) {
+            return true;
+        }
+        return false;
     },
 
     moveTo: function(newX, newY, newZ) {
@@ -349,7 +389,8 @@ Game.Screen.playScreen = {
         this._player.getMap().getEngine().unlock();
     },
     setSubScreen: function(subScreen) {
-        if (subScreen && subScreen != Game.Screen.lookScreen) {
+        if (subScreen && subScreen != Game.Screen.lookScreen 
+                      && subScreen != Game.Screen.aimScreen) {
             Game._display.setOptions({
                 width: Game._menuScreenWidth,
                 forceSquareRatio: false
@@ -400,7 +441,7 @@ Game.Screen.uiScreen = {
                 + '   ATK: ' + player.getAttackValueWithoutDice() 
                 + '+d' + player.getAttackDice() 
                 + '   DEF: ' + player.getDefenseValue(); 
-            display.drawText(1, 0, playerStats);
+            display.drawText(1, 1, playerStats);
         if (subScreen) {
             //console.log("has subscreen");
             if (subScreen == Game.Screen.lookScreen) {
@@ -430,7 +471,7 @@ Game.Screen.uiScreen = {
         stats += statPoints;
         
         
-        display.drawText(1, 1, stats);
+        display.drawText(1, 2, stats);
     }
 };
 
@@ -814,7 +855,7 @@ Game.Screen.helpScreen = {
         display.drawText(0, y++, '[p] to pick up items');
         display.drawText(0, y++, '[s] to use stat points');
         display.drawText(0, y++, '[z] to wait a turn');
-        display.drawText(0, y++, '[;] to look around you');
+        display.drawText(0, y++, '[l] to look around you');
         display.drawText(0, y++, '[?] to show this help screen');
         y ++;
         text = '--- press any key to continue ---';
@@ -870,11 +911,20 @@ Game.Screen.TargetBasedScreen.prototype.render = function(display) {
     // Render stars along the line.
     for (var i = 0; i < points.length; i++) {
         if (i == 0) {
-            display.drawText(points[i].x, points[i].y, '%c{magenta}@');
-        } else if (i == points.length - 1) {
-            display.drawText(points[i].x, points[i].y, '%c{magenta}x');
+            display.drawText(points[i].x, points[i].y, '%b{rgba(255,165,0,0.3)}@');
         } else {
-            display.drawText(points[i].x, points[i].y, '%c{magenta}*');
+            var map = this._player.getMap();
+            var tile = map.getTile(points[i].x, points[i].y, this._player.getZ());
+            var items = map.getItemsAt(points[i].x, points[i].y, this._player.getZ());
+            
+            if (items) {
+                tile = items[items.length - 1];
+            }
+            if (map.getEntityAt(points[i].x, points[i].y, this._player.getZ())) {
+                tile = map.getEntityAt(points[i].x, points[i].y, this._player.getZ())
+            }
+            var foreground = tile.getForeground();
+            display.drawText(points[i].x, points[i].y, '%c{' + foreground + '}%b{rgba(255,165,0,0.3)}' + tile.getChar());
         }
     }
 
@@ -942,7 +992,7 @@ Game.Screen.TargetBasedScreen.prototype.executeOkFunction = function() {
     // Switch back to the play screen.
     Game.Screen.playScreen.setSubScreen(undefined);
     // Call the OK function and end the player's turn if it return true.
-    if (this._okFunction(this._cursorX, this._cursorY)) {
+    if (this._isAcceptableFunction(this._cursorX, this._cursorY)) {
         this._player.getMap().getEngine().unlock();
     }
 };
@@ -982,6 +1032,48 @@ Game.Screen.lookScreen = new Game.Screen.TargetBasedScreen({
             return sprintf('You see %s',
                 Game.Tile.nullTile.getDescription());
         }
+    }
+});
+
+Game.Screen.aimScreen = new Game.Screen.TargetBasedScreen({
+    captionFunction: function(x, y) {
+        var z = this._player.getZ();
+        var map = this._player.getMap();
+        // If the tile is explored, we can give a better capton
+        if (map.isExplored(x, y, z)) {
+            // If the tile isn't explored, we have to check if we can actually 
+            // see it before testing if there's an entity or item.
+            if (this._visibleCells[x + ',' + y]) {
+                var items = map.getItemsAt(x, y, z);
+                // If we have items, we want to render the top most item
+                if (items) {
+                    var item = items[items.length - 1];
+                    return sprintf('You aim at %s (%s)',
+                        item.describeA(false),
+                        item.getDetails());
+                // Else check if there's an entity
+                } else if (map.getEntityAt(x, y, z)) {
+                    var entity = map.getEntityAt(x, y, z);
+                    //console.log("entity details: " + entity.getDetails())
+                    return sprintf('You aim at %s (%s)',
+                        entity.describeA(false),
+                        entity.getDetails());
+                }
+            }
+            // If there was no entity/item or the tile wasn't visible, then use
+            // the tile information.
+            return sprintf('You aim at %s',
+                map.getTile(x, y, z).getDescription());
+
+        } else {
+            // If the tile is not explored, show the null tile description.
+            return sprintf('You aim at %s',
+                Game.Tile.nullTile.getDescription());
+        }
+    },
+    okFunction: function(x, y) {
+        this._player.rangedAttack(x, y);
+        return true;
     }
 });
 

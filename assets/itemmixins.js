@@ -44,6 +44,7 @@ Game.ItemMixins.Equippable = {
         this._defenseValue = template['defenseValue'] || 0;
         this._wieldable = template['wieldable'] || false;
         this._wearable = template['wearable'] || false;
+        this._ranged = template['ranged'] || false;
     },
     getAttackValue: function() {
         return this._attackValue;
@@ -56,6 +57,9 @@ Game.ItemMixins.Equippable = {
     },
     isWearable: function() {
         return this._wearable;
+    },
+    isRanged: function() {
+        return this._ranged;
     },
     getSuffix: function() {
         var attack = this.getAttackValue();

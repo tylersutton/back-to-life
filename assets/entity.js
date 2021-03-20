@@ -73,6 +73,14 @@ Game.Entity.prototype.setPosition = function(x, y, z) {
     }
 };
 
+Game.Entity.prototype.getPosition = function() {
+    return {
+        x: this._x, 
+        y: this._y, 
+        z: this._z
+    };
+}
+
 Game.Entity.prototype.tryMove = function(x, y, z, map) {
     // Must use starting z
     var map = this.getMap();

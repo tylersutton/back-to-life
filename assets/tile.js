@@ -43,7 +43,7 @@ Game.Tile.nullTile = new Game.Tile({})
 Game.Tile.floorTile = new Game.Tile({
     character: '.',
     walkable: true,
-    foreground: 'rgb(120,140,120)',
+    foreground: 'rgb(120,120,120)',
     blocksLight: false,
     description: 'a stone floor'
 });
