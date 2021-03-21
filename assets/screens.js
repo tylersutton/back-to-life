@@ -512,19 +512,21 @@ Game.Screen.ItemListScreen.prototype.setup = function(player, items) {
             return null;
         }
     });
-    this._itemCounts = {};
+    var itemsStacked = [];
     for (var i = 0; i < this._items.length; i++) {
         var item = this._items[i];
         if (item) {
-            if (!this._itemCounts[item.getName()]) {
-                this._itemCounts[item.getName()] = 1;
+            var idx = itemsStacked.findIndex(element => element[0] !== undefined && element[0].getName() == item.getName());
+            if (idx !== -1) {
+                console.log("idx = " + idx + ", stacking existing item");
+                itemsStacked[idx].push(item);
             } else {
-                this._itemCounts[item.getName()]++;
-                this._items.splice(i, 1);
-                i--;
+                console.log("adding new item");
+                itemsStacked.push([item]);
             }
         }
     }
+    this._items = itemsStacked;
 
     // Clean set of selected indices
     this._selectedIndices = {};
@@ -543,7 +545,8 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
     
     for (var i = 0; i < this._items.length; i++) {
         // If we have an item, we want to render it.
-        if (this._items[i]) {
+        if (this._items[i] && this._items[i][0]) {
+            var item = this._items[i][0];
             // Get the letter matching the item's index
             var letter = letters.substring(i, i + 1);
             // If we have selected an item, show a +, else show a dash between
@@ -552,24 +555,23 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
                 this._selectedIndices[i]) ? '+' : '-';
             // Check if the item is worn or wielded
             var suffix = '';
-            if (this._items[i].hasMixin(Game.ItemMixins.Equippable)) {
-                suffix += this._items[i].getSuffix();
+            if (item.hasMixin(Game.ItemMixins.Equippable)) {
+                suffix += item.getSuffix();
             }
-            if (this._items[i] === this._player.getArmor()) {
+            if (item === this._player.getArmor()) {
                 suffix += ' (equipped)';
-            } else if (this._items[i] === this._player.getWeapon()) {
+            } else if (item === this._player.getWeapon()) {
                 suffix += ' (equipped)';
             }
                 // Render at the correct row and add 2.
             var numItems = '';
-            if (this._itemCounts[this._items[i].getName()] 
-                && this._itemCounts[this._items[i].getName()] > 1) {
-                numItems += this._itemCounts[this._items[i].getName()] + 'x ';
+            if (this._items[i].length > 1) {
+                numItems += this._items[i].length + 'x ';
                 display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' 
-                    + this._items[i].getRepresentation() + ' ' + numItems + this._items[i].describe() + suffix);
+                    + item.getRepresentation() + ' ' + numItems + item.describe() + suffix);
             } else {
                 display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' 
-                    + this._items[i].getRepresentation() + ' ' + numItems + this._items[i].describeA() + suffix);
+                    + item.getRepresentation() + ' ' + numItems + item.describeA() + suffix);
             }
             row++;
             
@@ -586,7 +588,7 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
             ];
             if (this._selectedIndices) {
                 var key = Object.keys(this._selectedIndices)[0];
-                var item = this._items[key];
+                var item = this._items[key][this._items[key].length - 1];
                 //.log(item.describe());
                 if (item && item.hasMixin('Equippable') && (item == this._player.getWeapon() || item == this._player.getArmor())) {
                     optionsDisplay = [
@@ -616,7 +618,7 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
 Game.Screen.ItemListScreen.prototype.executeSelectOptionFunction = function() {
     var selectedItems = {};
     for (var key in this._selectedIndices) {
-        selectedItems[key] = this._items[key];
+        selectedItems[key] = this._items[key][this._items[key].length - 1];
     }
 
     this._selectOptionFunction(selectedItems, this._selectedOption);
@@ -627,7 +629,7 @@ Game.Screen.ItemListScreen.prototype.executeOkFunction = function() {
     // Gather the selected items.
     var selectedItems = {};
     for (var key in this._selectedIndices) {
-        selectedItems[key] = this._items[key];
+        selectedItems[key] = this._items[key][this._items[key].length - 1];
     }
     // Switch back to the play screen.
     Game.Screen.playScreen.setSubScreen(undefined);
@@ -746,13 +748,8 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
                         }
                     }
                 }
-                if (!this._itemCounts[item.getName()] || this._itemCounts[item.getName()] <= 1) {
-                    this._items[key] = null;
-                    this._itemCounts[item.getName()] = null;
-                } else {
-                    this._itemCounts[item.getName()]--;
-                }
-                this.setup(this._player, this._player.getItems());
+                this._items[key].pop();
+                //this.setup(this._player, this._player.getItems());
                 this._optionsOpen = false;
                 Game.refresh();
             } else {
@@ -804,12 +801,7 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
         } else if (option === 'd') {
             //Game.sendMessage(this._player, "You drop %s.", [item.describeThe()]);
             this._player.dropItemByObject(item);
-            if (!this._itemCounts[item.getName()] || this._itemCounts[item.getName()] <= 1) {
-                this._items[key] = null;
-                this._itemCounts[item.getName()] = null;
-            } else {
-                this._itemCounts[item.getName()]--;
-            }
+            this._items[key].pop();
             this.setup(this._player, this._player.getItems());
             this._optionsOpen = false;
             Game.refresh();
