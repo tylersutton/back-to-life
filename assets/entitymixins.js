@@ -19,10 +19,11 @@ Game.EntityMixins.PlayerActor = {
         Game.refresh();
         // Lock the engine and wait asynchronously
         // for the player to press a key.
+        
         this.getMap().getEngine().lock();
         window.addEventListener("keydown", this); /* wait for input */
         this._acting = false;
-    }
+    },
 };
 
 Game.EntityMixins.TaskActor = {
@@ -111,7 +112,7 @@ Game.EntityMixins.TaskActor = {
         var offsetX = Math.abs(player.getX() - this.getX());
         var offsetY = Math.abs(player.getY() - this.getY());
         if (offsetX <= 1 && offsetY <= 1) {
-            if (this.hasMixin('Attacker')) {
+            if (this.hasMixin('Attacker') && (!this.hasMixin('Mover') || !this.isParalyzed())) {
                 this.attack(player);
                 return;
             }
@@ -200,7 +201,7 @@ Game.EntityMixins.Attacker = {
         // If we can equip items, then have to take into 
         // consideration weapon and armor
         if (this.hasMixin('Equipper')) {
-            if (this.getWeapon()) {
+            if (this.getWeapon() && this.getWeapon().doesDamage()) {
                 modifier += this.getWeapon().getAttackValue();
             }
             if (this.getArmor()) {
@@ -234,32 +235,48 @@ Game.EntityMixins.Attacker = {
         // If the target is destructible, calculate the damage
         // based on attack and defense value
         if (this != target && target.hasMixin('Destructible')) {
-            var attack = this.getAttackValue();
-            var defense = target.getDefenseValue();
-            var damage;
-            if (attack == 0) {
-                damage = 0;
+            var weapon = this.hasMixin('Equipper') ? this.getWeapon() : null;
+            if (weapon && weapon.doesDamage()) {
+                //console.log(weapon.describeThe() + " does damage");
             }
-            else {
-                damage = Math.max(0, Math.round(attack * attack / (attack + defense)));
+            if (weapon && !weapon.doesDamage()) {
+                if (weapon.hasMixin('Scroll')) {
+                    //console.log("is scroll");
+                    if (weapon.hasMixin('Paralysis') && target.hasMixin('Mover') && target.isParalyzable()) {
+                        //console.log("does paralyze");
+                        target.paralyze(weapon.getParalysisDuration());
+                        Game.sendMessage(this, 'The %s is paralyzed!', [target.getName()]);
+                        Game.sendMessage(target, 'You are paralyzed!');
+                        //console.log("target " + target.getName() + " is paralyzed.")
+                    }
+                }
+            } else {
+                var attack = this.getAttackValue();
+                var defense = target.getDefenseValue();
+                var damage;
+                if (attack == 0) {
+                    damage = 0;
+                }
+                else {
+                    damage = Math.max(0, Math.round(attack * attack / (attack + defense)));
+                }
+
+                Game.sendMessage(this, 'You strike the %s for %d damage!', 
+                    [target.getName(), damage]);
+                Game.sendMessage(target, 'The %s strikes you for %d damage!', 
+                    [this.getName(), damage]);
+
+                target.takeDamage(this, damage);
             }
-
-            Game.sendMessage(this, 'You strike the %s for %d damage!', 
-                [target.getName(), damage]);
-            Game.sendMessage(target, 'The %s strikes you for %d damage!', 
-                [this.getName(), damage]);
-
-            target.takeDamage(this, damage);
         }
     },
     rangedAttack: function(x, y) {
-        console.log("called ranged attack.")
+        //console.log("called ranged attack.")
         if (this.hasMixin('Equipper') && this.getWeapon() && this.getWeapon().isRanged()) {
-            console.log("can shoot a weapon")
+            //console.log("can shoot a weapon")
             var line = Game.getLine(this.getX(), this.getY(), x, y);
             var path = [];
             var target = null;
-            Game.sendMessage(this, 'You fire %s.', [this.getWeapon().describeThe()]);
             for (var i = 0; i < line.length; i++) {
                 path.push(line[i]);
                 target = this.getMap().getEntityAt(path[i].x, path[i].y, this.getZ());
@@ -270,16 +287,41 @@ Game.EntityMixins.Attacker = {
             Game.Screen.playScreen._waiting = true;
             this.getMap().getEngine().lock();
             var that = this;
-            new Game.Arrow({path: path}).go().then(function() {
-                if (target && that != target) {
-                    that.attack(target);
-                } else {
-                    Game.sendMessage(that, "You didn't hit anything.");
-                }
-                that.getMap().getEngine().unlock();
-                Game.refresh();
-                Game.Screen.playScreen._waiting = false;
-            });
+            if (this.getWeapon().doesDamage()) {
+                Game.sendMessage(this, 'You fire %s.', [this.getWeapon().describeThe()]);
+                new Game.Arrow({path: path}).go().then(function() {
+                    if (target && that != target) {
+                        that.attack(target);
+                    } else {
+                        Game.sendMessage(that, "You didn't hit anything.");
+                    }
+                    that.getMap().getEngine().unlock();
+                    Game.refresh();
+                    Game.Screen.playScreen._waiting = false;
+                });
+            } else {
+                Game.sendMessage(this, 'You activate %s.', [this.getWeapon().describeThe()]);
+                new Game.ScrollTrail({path: path}).go().then(function() {
+                    if (target && that != target) {
+                        that.attack(target);
+                        //console.log("target was hit");
+                    } else {
+                        Game.sendMessage(that, "You didn't hit anything.");
+                    }
+                    if (that.getWeapon().isDisposable()) {
+                        var items = that.getItems();
+                        for (var i = 0; i < items.length; i++) {
+                            if (items[i] == that.getWeapon()) {
+                                that.removeItem(i);
+                                i = items.length;
+                            }
+                        }
+                    }
+                    that.getMap().getEngine().unlock();
+                    Game.refresh();
+                    Game.Screen.playScreen._waiting = false;
+                });
+            }
         }
     },
     listeners: {
@@ -411,6 +453,37 @@ Game.EntityMixins.Destructible = {
         }
     }
 };
+
+Game.EntityMixins.Mover = {
+    name: 'Mover',
+    init: function(template) {
+        this._canMove = (template['canMove'] !== undefined) ?
+            template['canMove'] : true;
+        this._paralyzable = (template['isParalyzable'] !== undefined) ?
+            template['isParalyzable'] : true;
+    },
+    paralyze: function(duration) {
+        if (this._paralyzable) {
+            this._canMove = false;
+            this._paralyzeTimer = duration;
+        }
+    },
+    unparalyze: function() {
+        this._canMove = true;
+    },
+    decrementParalysisTimer: function() {
+        this._paralyzeTimer--;
+        if (this._paralyzeTimer <= 0) {
+            this.unparalyze();
+        }
+    },
+    isParalyzable: function() {
+        return this._paralyzable;
+    },
+    isParalyzed: function() {
+        return !this._canMove;
+    }
+}
 
 // This signifies our entity posseses a field of vision of a given radius.
 Game.EntityMixins.Sight = {
@@ -596,6 +669,14 @@ Game.EntityMixins.InventoryHolder = {
         // Simply clear the inventory slot.
         this._items[i] = null;
     },
+    removeItemByObject: function(item) {
+        for (var i = this._items.length - 1; i >= 0; i--) {
+            if (this._items[i] == item) {
+                this.removeItem(i);
+                return;
+            }
+        }
+    },
     canAddItem: function() {
         // Check if we have an empty slot.
         for (var i = 0; i < this._items.length; i++) {
@@ -637,6 +718,14 @@ Game.EntityMixins.InventoryHolder = {
             //console.log("dropped item");
             Game.sendMessage(this, "You drop %s.", [this._items[i].describeThe()]);
             this.removeItem(i);      
+        }
+    },
+    dropItemByObject: function(item) {
+        for (var i = this._items.length-1; i >= 0; i--) {
+            if (this._items[i] == item) {
+                this.dropItem(i);
+                return;
+            }
         }
     },
     dropItems: function() {

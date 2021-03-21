@@ -41,10 +41,11 @@ Game.Repository.prototype.create = function(name, extraProperties) {
 };
 
 // Create an object allowed at given z-level based on a random template
-Game.Repository.prototype.createRandom = function(z, mixin, arg) {
+Game.Repository.prototype.createRandom = function(z, includedMixins, excludedMixins, arg) {
     // Pick a random key and create an object based off of it.
     var argRequired = arg !== undefined;
-    var mixinRequired = mixin !== undefined;
+    var mixinsRequired = includedMixins !== undefined;
+    var mixinsExcluded = excludedMixins !== undefined;
     z = z || 0;
     var validKeys = [];
     for (var key in this._randomTemplates) {
@@ -53,11 +54,48 @@ Game.Repository.prototype.createRandom = function(z, mixin, arg) {
             var minZ = this._randomTemplates[key]['minZLevel'] || 0;
             var maxZ = this._randomTemplates[key]['maxZLevel'] || 1000;
             //console.log("name: " + this._randomTemplates[key].name + ", minZ: " + minZ + ", maxZ: " + maxZ);
-            if (z >= minZ && z <= maxZ 
-                    && (!mixinRequired || this._randomTemplates[key]['mixins'].includes(mixin))
+            if (!mixinsRequired && !mixinsExcluded && z >= minZ && z <= maxZ 
                     && (!argRequired || this._randomTemplates[key][arg])) {
-                //console.log("name: " + this._randomTemplates[key].name);
-                validKeys.push(key);
+                validKeys.push(key);     
+            } else {
+                var valid = true;
+                // key is invalid if z is outside bounds
+                if (z < minZ || z > maxZ) {
+                    //console.log("z outside bounds");
+                    valid = false;
+                }
+                // key is invalid if missing arg
+                if (argRequired && !this._randomTemplates[key][arg]) {
+                    //console.log("did not match arg");
+                    valid = false;
+                }
+                // key is invalid if none of the required mixins are present
+                if (includedMixins) {
+                    var found = false;
+                    for (var i = 0; i < includedMixins.length; i++) {
+                        if (this._randomTemplates[key]['mixins'].includes(includedMixins[i])) {
+                            found = true;
+                        }
+                    }
+                    if (!found) {
+                        //console.log("did not find required mixin");
+                        valid = false;
+                    }
+                }
+                // key is invalid if any excluded mixins are present
+                if (excludedMixins) {
+                    for (var i = 0; i < excludedMixins.length; i++) {
+                        if (this._randomTemplates[key]['mixins'].includes(excludedMixins[i])) {
+                            //console.log("found excluded mixin");
+                            valid = false;
+                        }
+                    }
+                }
+                if (valid) {
+                    validKeys.push(key);
+                } else {
+                    //console.log("no valid candidates found");
+                }
             }
         }
     }

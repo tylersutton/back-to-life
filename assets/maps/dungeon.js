@@ -25,20 +25,38 @@ Game.Map.Dungeon.prototype.populateDungeon = function(z, player) {
             }
         }
     }
-    
-    for (var i = 0; i < 5; i++) {
+    // add 3 to 5 health potions 
+    var numHealing = Math.round((Math.random() * 2) + 3);
+    for (var i = 0; i < numHealing; i++) {
         // add random item
-        var item = Game.ItemRepository.createRandom(z, Game.ItemMixins.Healing);
+        var item = Game.ItemRepository.createRandom(z, [Game.ItemMixins.Healing]);
+        this.addItemAtRandomPosition(item, z);
+    }
+    // add 1 to 2 scrolls 
+    var numScrolls = Math.round(Math.random() + 1);
+    for (var i = 0; i < numScrolls; i++) {
+        // add random item
+        var item = Game.ItemRepository.createRandom(z, [Game.ItemMixins.Scroll]);
         this.addItemAtRandomPosition(item, z);
     }
     // 80% chance to add random wieldable
     if (Math.random() * 100 < 80) {
-        var wieldable = Game.ItemRepository.createRandom(z, Game.ItemMixins.Equippable, 'wieldable');
+        var wieldable = Game.ItemRepository.createRandom(
+            z, 
+            [Game.ItemMixins.Equippable],
+            [Game.ItemMixins.Scroll],
+            'wieldable'
+        );
         this.addItemAtRandomPosition(wieldable, z);
     }
     // 80% chance to add random wearable
     if (Math.random() * 100 < 80) {
-        var wearable = Game.ItemRepository.createRandom(z, Game.ItemMixins.Wearable, 'wearable');
+        var wearable = Game.ItemRepository.createRandom(
+            z, 
+            [Game.ItemMixins.Equippable],
+            [Game.ItemMixins.Scroll],
+            'wearable'
+        );
         this.addItemAtRandomPosition(wearable, z);
     }
     

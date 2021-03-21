@@ -106,6 +106,7 @@ Game.Screen.playScreen = {
         
         // Create our player and set the position
         this._player = new Game.Entity(Game.PlayerTemplate);
+        this._player.addItem(Game.ItemRepository.create('scrollOfParalysis'));
         // Create our map from the tiles
         var map = new Game.Map.Dungeon(tiles, this._player);
         
@@ -511,6 +512,20 @@ Game.Screen.ItemListScreen.prototype.setup = function(player, items) {
             return null;
         }
     });
+    this._itemCounts = {};
+    for (var i = 0; i < this._items.length; i++) {
+        var item = this._items[i];
+        if (item) {
+            if (!this._itemCounts[item.getName()]) {
+                this._itemCounts[item.getName()] = 1;
+            } else {
+                this._itemCounts[item.getName()]++;
+                this._items.splice(i, 1);
+                i--;
+            }
+        }
+    }
+
     // Clean set of selected indices
     this._selectedIndices = {};
     this._selectedOption = null;
@@ -546,9 +561,18 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
                 suffix += ' (equipped)';
             }
                 // Render at the correct row and add 2.
-            display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' 
-                + this._items[i].getRepresentation() + ' ' + this._items[i].describe() + suffix);
+            var numItems = '';
+            if (this._itemCounts[this._items[i].getName()] 
+                && this._itemCounts[this._items[i].getName()] > 1) {
+                numItems += this._itemCounts[this._items[i].getName()] + 'x ';
+                display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' 
+                    + this._items[i].getRepresentation() + ' ' + numItems + this._items[i].describe() + suffix);
+            } else {
+                display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' 
+                    + this._items[i].getRepresentation() + ' ' + numItems + this._items[i].describeA() + suffix);
+            }
             row++;
+            
         }
         
         if (this._hasOptionsMenu && this._optionsOpen) {
@@ -713,10 +737,23 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
             if (item && item.hasMixin('Healing')) {
                 Game.sendMessage(this._player, "You consume %s.", [item.describeThe()]);
                 item.consume(this._player);
-                this._player.removeItem(key);
-                this._items[key] = null;
+                this._player.removeItemByObject(item);
+                var playerItems = this._player.getItems();
+                if (playerItems) {
+                    for (var i = 0; i < playerItems.length; i++) {
+                        if (playerItems[i]) {
+                            console.log("item " + i + ": " + playerItems[i].getName());
+                        }
+                    }
+                }
+                if (!this._itemCounts[item.getName()] || this._itemCounts[item.getName()] <= 1) {
+                    this._items[key] = null;
+                    this._itemCounts[item.getName()] = null;
+                } else {
+                    this._itemCounts[item.getName()]--;
+                }
+                this.setup(this._player, this._player.getItems());
                 this._optionsOpen = false;
-                this._selectedIndices = {};
                 Game.refresh();
             } else {
                 Game.sendMessage(this._player, "You can't apply %s.", [item.describeA()]);
@@ -766,10 +803,15 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
             Game.refresh();
         } else if (option === 'd') {
             //Game.sendMessage(this._player, "You drop %s.", [item.describeThe()]);
-            this._player.dropItem(key);
-            this._items[key] = null;
+            this._player.dropItemByObject(item);
+            if (!this._itemCounts[item.getName()] || this._itemCounts[item.getName()] <= 1) {
+                this._items[key] = null;
+                this._itemCounts[item.getName()] = null;
+            } else {
+                this._itemCounts[item.getName()]--;
+            }
+            this.setup(this._player, this._player.getItems());
             this._optionsOpen = false;
-            this._selectedIndices = {};
             Game.refresh();
         }
     },

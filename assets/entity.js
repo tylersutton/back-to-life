@@ -87,7 +87,11 @@ Game.Entity.prototype.tryMove = function(x, y, z, map) {
     var tile = map.getTile(x, y, this.getZ());
     var target = map.getEntityAt(x, y, this.getZ());
     // If our z level changed, check if we are on stair
-    if (z < this.getZ()) {
+    if (!this.hasMixin('Mover') || this.isParalyzed()) {
+        Game.sendMessage(this, "You can't move, you are paralyzed!");
+        this.decrementParalysisTimer();
+        return false;
+    } else if (z < this.getZ()) {
         Game.sendMessage(this, "You ascend to level %d!", [z + 1]);
         this.setPosition(x, y, z);
     } else if (z > this.getZ()) {

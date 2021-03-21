@@ -21,7 +21,7 @@ Game.Animation.prototype.step = function() {
     if (this._curStep != 0) {
         Game.Screen.playScreen.removeEffect(this._path[this._curStep-1].x, this._path[this._curStep-1].y);
     }
-    if (this._curStep === this._path.length) {
+    if (!this._path || this._curStep === this._path.length) {
         this.done();
         return;
     }
@@ -32,6 +32,9 @@ Game.Animation.prototype.step = function() {
 };
 
 Game.Animation.prototype.done = function() {
-    Game.Screen.playScreen.removeEffect(this._path[this._curStep-1].x, this._path[this._curStep-1].y);
+    console.log("promise fulfilled");
+    if (this._path && this._curStep > 0) {
+        Game.Screen.playScreen.removeEffect(this._path[this._curStep-1].x, this._path[this._curStep-1].y);
+    }
     this._promise.fulfill();
 };

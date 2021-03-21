@@ -10,7 +10,7 @@ Game.ItemMixins.Healing = {
         if (entity.hasMixin('Destructible')) {
             if (!this._isEmpty) {
                 entity.heal(this._healValue);
-                this._isEmpty = true;
+                //this._isEmpty = true;
             }
             else {
                 Game.sendMessage(entity, "It has no effect.");
@@ -45,6 +45,8 @@ Game.ItemMixins.Equippable = {
         this._wieldable = template['wieldable'] || false;
         this._wearable = template['wearable'] || false;
         this._ranged = template['ranged'] || false;
+        this._disposable = template['disposable'] || false;
+        this._doesDamage = (template['doesDamage'] !== undefined) ? template['doesDamage'] : true; 
     },
     getAttackValue: function() {
         return this._attackValue;
@@ -60,6 +62,12 @@ Game.ItemMixins.Equippable = {
     },
     isRanged: function() {
         return this._ranged;
+    },
+    isDisposable: function() {
+        return this._disposable;
+    },
+    doesDamage: function() {
+        return this._doesDamage;
     },
     getSuffix: function() {
         var attack = this.getAttackValue();
@@ -90,3 +98,35 @@ Game.ItemMixins.Equippable = {
         }
     }
 };
+
+Game.ItemMixins.Scroll = {
+    name: 'Scroll',
+    init: function(template) {
+        this._identified = template['identified'] || false;
+    },
+    identify: function() {
+        this._identified = true;
+    },
+    describe: function() {
+        if (this._identified) {
+            return this._name;
+        } else {
+            return 'mysterious scroll';
+        }
+    }
+}
+
+Game.ItemMixins.Paralysis = {
+    name: 'Paralysis',
+    init: function(template) {
+        this._paralysisDuration = template['paralysisDuration'] || 5;
+    },
+    listeners: {
+        'details': function() {
+            return [{key: 'duration', value: this._paralysisDuration}];
+        }
+    },
+    getParalysisDuration: function() {
+        return this._paralysisDuration;
+    }
+}

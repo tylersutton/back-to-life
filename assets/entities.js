@@ -11,7 +11,7 @@ Game.PlayerTemplate = {
     mixins: [Game.EntityMixins.PlayerActor, Game.EntityMixins.InventoryHolder,
              Game.EntityMixins.Attacker, Game.EntityMixins.Destructible,
              Game.EntityMixins.Sight, Game.EntityMixins.MessageRecipient,
-             Game.EntityMixins.Equipper,
+             Game.EntityMixins.Equipper, Game.EntityMixins.Mover,
              Game.EntityMixins.ExperienceGainer, Game.EntityMixins.PlayerStatGainer]
 };
 
@@ -32,7 +32,7 @@ Game.EntityRepository.define('Greedy Ghost', {
     tasks: ['huntItem', 'hunt', 'wander'],
     mixins: [Game.EntityMixins.TaskActor, Game.EntityMixins.InventoryHolder,
              Game.EntityMixins.Attacker, Game.EntityMixins.Destructible, 
-             Game.EntityMixins.Sight,
+             Game.EntityMixins.Sight, Game.EntityMixins.Mover,
              Game.EntityMixins.ExperienceGainer, Game.EntityMixins.RandomStatGainer]
 });
 
@@ -49,7 +49,7 @@ Game.EntityRepository.define('Goblin', {
     tasks: ['hunt', 'wander'],
     mixins: [Game.EntityMixins.TaskActor,
         Game.EntityMixins.Attacker, Game.EntityMixins.Destructible, 
-        Game.EntityMixins.Sight,
+        Game.EntityMixins.Sight, Game.EntityMixins.Mover,
         Game.EntityMixins.ExperienceGainer, Game.EntityMixins.RandomStatGainer]
 });
 
@@ -66,7 +66,7 @@ Game.EntityRepository.define('Demon', {
     tasks: ['hunt', 'wander'],
     mixins: [Game.EntityMixins.TaskActor,
         Game.EntityMixins.Attacker, Game.EntityMixins.Destructible, 
-        Game.EntityMixins.Sight,
+        Game.EntityMixins.Sight, Game.EntityMixins.Mover,
         Game.EntityMixins.ExperienceGainer, Game.EntityMixins.RandomStatGainer]
 });
 
@@ -85,7 +85,7 @@ Game.EntityRepository.define('Imp', {
     tasks: ['hunt', 'wander'],
     mixins: [Game.EntityMixins.TaskActor,
              Game.EntityMixins.Attacker, Game.EntityMixins.Destructible, 
-             Game.EntityMixins.Sight,
+             Game.EntityMixins.Sight, Game.EntityMixins.Mover,
              Game.EntityMixins.ExperienceGainer, Game.EntityMixins.RandomStatGainer]
 });
 
@@ -100,7 +100,7 @@ Game.EntityRepository.define('Ruler', {
     level: 5,
     sightRadius: 6,
     mixins: [Game.EntityMixins.RulerActor, Game.EntityMixins.Sight,
-             Game.EntityMixins.Attacker, Game.EntityMixins.Destructible,
+             Game.EntityMixins.Attacker, Game.EntityMixins.Destructible, Game.EntityMixins.Mover,
              Game.EntityMixins.ExperienceGainer, Game.EntityMixins.RandomStatGainer]
 }, {
     disableRandomCreation: true
@@ -115,7 +115,7 @@ Game.EntityRepository.define('Slime', {
     sightRadius: 3,
     tasks: ['hunt', 'wander'],
     mixins: [Game.EntityMixins.TaskActor, Game.EntityMixins.Sight,
-             Game.EntityMixins.Attacker, Game.EntityMixins.Destructible,
+             Game.EntityMixins.Attacker, Game.EntityMixins.Destructible, Game.EntityMixins.Mover,
              Game.EntityMixins.ExperienceGainer, Game.EntityMixins.RandomStatGainer]
 }, {
     disableRandomCreation: true

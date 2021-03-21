@@ -153,7 +153,7 @@ Game.ItemRepository.define('tunic', {
 });
 
 // Wearables
-Game.ItemRepository.define('leather robe', {
+Game.ItemRepository.define('leatherRobe', {
     name: 'leather robe',
     character: '(',
     foreground: 'rgb(158,116,43)',
@@ -201,5 +201,21 @@ Game.ItemRepository.define('steelPlatemail', {
     mixins: [Game.ItemMixins.Equippable]
 }, {
    // disableRandomCreation: true
+});
+//#endregion
+
+//#region Scrolls
+Game.ItemRepository.define('scrollOfParalysis', {
+    name: 'scroll of paralysis',
+    character: '♪',
+    foreground: 'rgb(210,210,100)',
+    paralysisDuration: 5,
+    wieldable: true,
+    doesDamage: false,
+    disposable: true,
+    ranged: true,
+    mixins: [Game.ItemMixins.Equippable, Game.ItemMixins.Scroll, Game.ItemMixins.Paralysis]
+}, {
+    
 });
 //#endregion
