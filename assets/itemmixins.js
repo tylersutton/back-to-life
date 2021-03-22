@@ -5,6 +5,7 @@ Game.ItemMixins.Healing = {
     init: function(template) {
         this._healValue = template['healValue'] || 1;
         this._isEmpty = template['isEmpty'] || false;
+        this._canQuickHeal = template['canQuickHeal'] || false;
     },
     consume: function(entity) {
         if (entity.hasMixin('Destructible')) {
@@ -17,17 +18,24 @@ Game.ItemMixins.Healing = {
             } 
         }
     },
+    canQuickHeal: function() {
+        return this._canQuickHeal;
+    },
     isEmpty: function() {
         return this._isEmpty;
     },
     empty: function() {
         this._isEmpty = true;
     },
-    describe: function() {
+    describe: function(plural) {
         if (this._isEmpty) {
             return 'empty ' + Game.Item.prototype.describe.call(this);
         } else {
-            return this._name;
+            if (plural) {
+                return this._pluralName;
+            } else {
+                return this._name;
+            }
         }
     },
     listeners: {
@@ -69,20 +77,13 @@ Game.ItemMixins.Equippable = {
     doesDamage: function() {
         return this._doesDamage;
     },
-    getSuffix: function() {
+    getAttackDefense: function() {
         var attack = this.getAttackValue();
         var defense = this.getDefenseValue();
         var suffix = '';
-        if (attack > 0) {
-            suffix += ' {+' + attack;
-            if (defense > 0) {
-                suffix += " atk, +" + defense + " def}";
-            } else {
-                suffix += " atk}";
-            }
-        } else if (defense > 0) {
-            suffix += ' {+' + defense + " def}";
-        }
+        if (attack + defense > 0) {
+            suffix += ' +' + attack + ',+' + defense;
+        } 
         return suffix;
     },
     listeners: {
@@ -102,16 +103,25 @@ Game.ItemMixins.Equippable = {
 Game.ItemMixins.Scroll = {
     name: 'Scroll',
     init: function(template) {
-        this._identified = template['identified'] || false;
+        this._identified = true; //template['identified'] || false;
     },
     identify: function() {
         this._identified = true;
     },
-    describe: function() {
+    describe: function(plural) {
         if (this._identified) {
-            return this._name;
+            if (plural) {
+                return this._pluralName;
+            } else {
+                return this._name;
+            }
+            
         } else {
-            return 'mysterious scroll';
+            if (plural) {
+                return 'mysterious scrolls';
+            } else {
+                return 'mysterious scroll';
+            }
         }
     }
 }

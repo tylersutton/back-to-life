@@ -6,6 +6,7 @@ Game.ItemRepository.define('soulVial', {
     character: '!',
     foreground: 'rgb(210,210,100)',
     healValue: 20,
+    canQuickHeal: true,
     isEmpty: false,
     mixins: [Game.ItemMixins.Healing]
 });
@@ -167,6 +168,7 @@ Game.ItemRepository.define('leatherRobe', {
 
 Game.ItemRepository.define('chainmail', {
     name: 'chainmail',
+    pluralName: 'chainmail',
     character: '[',
     foreground: 'aliceblue',
     defenseValue: 4,
@@ -180,6 +182,7 @@ Game.ItemRepository.define('chainmail', {
 
 Game.ItemRepository.define('ironPlatemail', {
     name: 'iron platemail',
+    pluralName: 'iron platemail',
     character: '[',
     foreground: 'rgb(200,200,200)',
     defenseValue: 6,
@@ -193,6 +196,7 @@ Game.ItemRepository.define('ironPlatemail', {
 
 Game.ItemRepository.define('steelPlatemail', {
     name: 'steel platemail',
+    pluralName: 'steel platemail',
     character: '[',
     foreground: 'white',
     defenseValue: 10,
@@ -207,6 +211,7 @@ Game.ItemRepository.define('steelPlatemail', {
 //#region Scrolls
 Game.ItemRepository.define('scrollOfParalysis', {
     name: 'scroll of paralysis',
+    pluralName: 'scrolls of paralysis',
     character: '♪',
     foreground: 'rgb(210,210,100)',
     paralysisDuration: 5,

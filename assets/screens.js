@@ -265,17 +265,13 @@ Game.Screen.playScreen = {
                 }
                 return;
             } else if (inputData.key === 'h') {
-                // Show the drop screen
-                if (Game.Screen.healScreen.setup(this._player, this._player.getItems())) {
-                    this.setSubScreen(Game.Screen.healScreen);
-                } else {
-                    Game.sendMessage(this._player, "You have nothing to heal with.");
-                    Game.refresh();
-                }
+                this._player.healWithItem();
+                map.getEngine().unlock();
+                Game.refresh();
                 return;
             } else if (inputData.key === 'l') {
                 // Setup the look screen.
-                Game.sendMessage(this._player, "Press [Esc] or [Enter] to cancel.");
+                Game.sendMessage(this._player, "You look around. Press [Esc] to cancel.");
                 Game.Screen.lookScreen.setup(this._player,
                     this._player.getX(), this._player.getY());
                 this.setSubScreen(Game.Screen.lookScreen);
@@ -287,6 +283,7 @@ Game.Screen.playScreen = {
                     this._player.getX(), this._player.getY());
                 this.setSubScreen(Game.Screen.aimScreen);
                 return;
+            /*
             } else if (inputData.key === 'p') {
                 var items = map.getItemsAt(this._player.getX(), this._player.getY(), this._player.getZ());
                 // If there are no items, show a message
@@ -309,6 +306,7 @@ Game.Screen.playScreen = {
                     this.setSubScreen(Game.Screen.pickupScreen);
                     return;
                 }
+            */
             } else if (inputData.key === 's')  {
                 if (this._player.getStatPoints() > 0) {
                     this._player.useStatPoints();
@@ -518,10 +516,10 @@ Game.Screen.ItemListScreen.prototype.setup = function(player, items) {
         if (item) {
             var idx = itemsStacked.findIndex(element => element[0] !== undefined && element[0].getName() == item.getName());
             if (idx !== -1) {
-                console.log("idx = " + idx + ", stacking existing item");
+                //console.log("idx = " + idx + ", stacking existing item");
                 itemsStacked[idx].push(item);
             } else {
-                console.log("adding new item");
+                //console.log("adding new item");
                 itemsStacked.push([item]);
             }
         }
@@ -554,24 +552,32 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
             var selectionState = (this._canSelectItem && this._canSelectMultipleItems &&
                 this._selectedIndices[i]) ? '+' : '-';
             // Check if the item is worn or wielded
-            var suffix = '';
+            var prefix = '';
             if (item.hasMixin(Game.ItemMixins.Equippable)) {
-                suffix += item.getSuffix();
+                prefix += item.getAttackDefense();
             }
-            if (item === this._player.getArmor()) {
-                suffix += ' (equipped)';
-            } else if (item === this._player.getWeapon()) {
-                suffix += ' (equipped)';
+            var suffix = '';
+            // If euipped item is part of a stack and it's not the one being displayed,
+            // still show that on of them is equipped
+            for (var j = 0; j < this._items[i].length; j++) {
+                if (this._items[i][j] === this._player.getArmor()) {
+                    suffix += ' (equipped)';
+                    break;
+                } else if (this._items[i][j] === this._player.getWeapon()) {
+                    suffix += ' (equipped)';
+                    break;
+                }
             }
+            
                 // Render at the correct row and add 2.
             var numItems = '';
             if (this._items[i].length > 1) {
-                numItems += this._items[i].length + 'x ';
+                numItems += this._items[i].length;
                 display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' 
-                    + item.getRepresentation() + ' ' + numItems + item.describe() + suffix);
+                    + item.getRepresentation() + ' ' + numItems + prefix + ' ' + item.describe(true) + suffix);
             } else {
                 display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' 
-                    + item.getRepresentation() + ' ' + numItems + item.describeA() + suffix);
+                    + item.getRepresentation() + prefix + ' ' + numItems + item.describe() + suffix);
             }
             row++;
             
@@ -700,7 +706,7 @@ Game.Screen.ItemListScreen.prototype.handleInput = function(inputType, inputData
     }
 };
 //#endregion
-
+/*
 Game.Screen.healScreen = new Game.Screen.ItemListScreen({
     caption: 'Choose an item to heal with',
     canSelect: true,
@@ -719,7 +725,7 @@ Game.Screen.healScreen = new Game.Screen.ItemListScreen({
         return true;
     }
 });
-
+*/
 Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
     caption: 'Inventory',
     canSelect: true,
@@ -744,7 +750,7 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
                 if (playerItems) {
                     for (var i = 0; i < playerItems.length; i++) {
                         if (playerItems[i]) {
-                            console.log("item " + i + ": " + playerItems[i].getName());
+                            //console.log("item " + i + ": " + playerItems[i].getName());
                         }
                     }
                 }
@@ -800,9 +806,21 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
             Game.refresh();
         } else if (option === 'd') {
             //Game.sendMessage(this._player, "You drop %s.", [item.describeThe()]);
+            var wasWielding = item === this._player.getWeapon();
+            var wasWearing = item === this._player.getArmor();
             this._player.dropItemByObject(item);
             this._items[key].pop();
-            this.setup(this._player, this._player.getItems());
+            // If an equipped item gets dropped that the player has multiple of,
+            // equip a different item with the same name
+            if (this._items[key] && this._items[key][0]) {
+                if (wasWielding) {
+                    this._player.wield(this._items[key][this._items[key].length-1]);
+                } else if (wasWearing) {
+                    this._player.wear(this._items[key][this._items[key].length-1]);
+                }
+            }
+            
+            //this.setup(this._player, this._player.getItems());
             this._optionsOpen = false;
             Game.refresh();
         }
@@ -811,7 +829,7 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
         return true;
     }
 });
-
+/*
 Game.Screen.pickupScreen = new Game.Screen.ItemListScreen({
     caption: 'Choose the items you wish to pickup.',
     canSelect: true,
@@ -819,13 +837,13 @@ Game.Screen.pickupScreen = new Game.Screen.ItemListScreen({
     ok: function(selectedItems) {
         // Try to pick up all items, messaging the player if they couldn't all be
         // picked up.
-        if (!this._player.pickupItems(Object.keys(selectedItems))) {
+        if (!this._player.pickupAllItems()) {
             Game.sendMessage(this._player, "Your inventory is full! Not all items were picked up.");
         }
         return true;
     }
 });
-
+*/
 Game.Screen.gainStatScreen = {
     setup: function(entity) {
         // Must be called before rendering.
@@ -874,8 +892,8 @@ Game.Screen.gainStatScreen = {
 // Define our help screen
 Game.Screen.helpScreen = {
     render: function(display) {
-        var text = 'Back to Life - Help';
-        var border = '-------------------';
+        var text =   'Back to Life! - Help';
+        var border = '--------------------';
         var y = 0;
         display.drawText((Game._menuScreenWidth / 2) - (text.length / 2), y++, text);
         display.drawText((Game._menuScreenWidth / 2) - (text.length / 2), y++, border);
@@ -883,12 +901,11 @@ Game.Screen.helpScreen = {
         y++;
         display.drawText(0, y++, 'Controls:');
         y++;
-        display.drawText(0, y++, 'Arrow keys/numpad to move and attack');
+        display.drawText(0, y++, 'Arrow keys/numpad/mouse to move');
         display.drawText(0, y++, '[Enter] to use stairs');
-        display.drawText(0, y++, '[Enter] or [Esc] to exit menus');
+        display.drawText(0, y++, '[f] to fire ranged weapons/scrolls');
         display.drawText(0, y++, '[h] to quick-heal with an item');
         display.drawText(0, y++, '[i] to open inventory');
-        display.drawText(0, y++, '[p] to pick up items');
         display.drawText(0, y++, '[s] to use stat points');
         display.drawText(0, y++, '[z] to wait a turn');
         display.drawText(0, y++, '[l] to look around you');

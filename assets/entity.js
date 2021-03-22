@@ -127,9 +127,25 @@ Game.Entity.prototype.tryMove = function(x, y, z, map) {
         var items = this.getMap().getItemsAt(x, y, z);
         if (items) {
             if (items.length === 1) {
-                Game.sendMessage(this, "You see %s.", [items[0].describeA()]);
+                if (this.hasMixin('PlayerActor')) {
+                    var itemDescription = items[0].describeA()
+                    if (this.pickupAllItems()) {
+                        Game.sendMessage(this, "You pick up %s.", [itemDescription]);
+                    } else {
+                        Game.sendMessage(this, "You try to pick up %s but your inventory is full.", [itemDescription]);
+                    }
+                    
+                }
+                
             } else {
-                Game.sendMessage(this, "There are several objects here.");
+                if (this.hasMixin('PlayerActor')) {
+                    if (this.pickupAllItems()) {
+                        Game.sendMessage(this, "You pick up several objects.");
+                    } else {
+                        Game.sendMessage(this, "You try to pick up several objects but your inventory is full.");
+                    }
+                    
+                }
             }
         }
         return true;

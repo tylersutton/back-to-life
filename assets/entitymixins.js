@@ -231,24 +231,20 @@ Game.EntityMixins.Attacker = {
         this._baseAttackValue += value;
         Game.sendMessage(this, "You look stronger!");
     },
-    attack: function(target) {
+    attack: function(target, fromRanged) {
         // If the target is destructible, calculate the damage
         // based on attack and defense value
         if (this != target && target.hasMixin('Destructible')) {
             var weapon = this.hasMixin('Equipper') ? this.getWeapon() : null;
-            if (weapon && weapon.doesDamage()) {
-                //console.log(weapon.describeThe() + " does damage");
-            }
-            if (weapon && !weapon.doesDamage()) {
-                if (weapon.hasMixin('Scroll')) {
-                    //console.log("is scroll");
-                    if (weapon.hasMixin('Paralysis') && target.hasMixin('Mover') && target.isParalyzable()) {
-                        //console.log("does paralyze");
-                        target.paralyze(weapon.getParalysisDuration());
-                        Game.sendMessage(this, 'The %s is paralyzed!', [target.getName()]);
-                        Game.sendMessage(target, 'You are paralyzed!');
-                        //console.log("target " + target.getName() + " is paralyzed.")
-                    }
+            if (weapon && !weapon.doesDamage() 
+                && weapon.hasMixin('Scroll') && fromRanged) {
+                //console.log("is scroll");
+                if (weapon.hasMixin('Paralysis') && target.hasMixin('Mover') && target.isParalyzable()) {
+                    //console.log("does paralyze");
+                    target.paralyze(weapon.getParalysisDuration());
+                    Game.sendMessage(this, 'The %s is paralyzed!', [target.getName()]);
+                    Game.sendMessage(target, 'You are paralyzed!');
+                    //console.log("target " + target.getName() + " is paralyzed.")
                 }
             } else {
                 var attack = this.getAttackValue();
@@ -291,7 +287,7 @@ Game.EntityMixins.Attacker = {
                 Game.sendMessage(this, 'You fire %s.', [this.getWeapon().describeThe()]);
                 new Game.Arrow({path: path}).go().then(function() {
                     if (target && that != target) {
-                        that.attack(target);
+                        that.attack(target, true);
                     } else {
                         Game.sendMessage(that, "You didn't hit anything.");
                     }
@@ -423,6 +419,21 @@ Game.EntityMixins.Destructible = {
         if (this._canHeal) {
             this.setHp(this._hp + amount);
         }
+    },
+    healWithItem: function() {
+        if (this.canHeal() && this.hasMixin('InventoryHolder') && this._items) {
+            for (var i = 0; i < this._items.length; i++) {
+                var item = this._items[i];
+                if (item && item.hasMixin('Healing') && item.canQuickHeal()) {
+                    item.consume(this);
+                    Game.sendMessage(this, "you consume %s.", [item.describeA()]);
+                    this.removeItemByObject(item);
+                    return true;
+                }
+            }
+        }
+        Game.sendMessage(this, "You have nothing to quick heal with.");
+        return false;
     },
     canHeal: function() {
         return this._canHeal;
@@ -708,6 +719,27 @@ Game.EntityMixins.InventoryHolder = {
         this._map.setItemsAt(this.getX(), this.getY(), this.getZ(), mapItems);
         // Return true only if we added all items
         return added === indices.length;
+    },
+    pickupAllItems: function() {
+        var mapItems = this._map.getItemsAt(this.getX(), this.getY(), this.getZ());
+        var numItems = mapItems.length;
+        var added = 0;
+        //iterate through each item in array
+        for (var i = 0; i < numItems; i++) {
+            // Try to add the item. If our inventory is not full, then splice the 
+            // item out of the list of items. In order to fetch the right item, we
+            // have to offset the number of items already added.
+            if (this.addItem(mapItems[i - added])) {
+                mapItems.splice(i - added, 1);
+                added++;
+            } else {
+                break;
+            }
+        }
+        // Update the map items
+        this._map.setItemsAt(this.getX(), this.getY(), this.getZ(), mapItems);
+        // Return true only if we added all items
+        return added === numItems;
     },
     dropItem: function(i) {
         // Drops an item to the current map tile

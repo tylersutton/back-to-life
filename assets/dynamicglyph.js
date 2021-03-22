@@ -4,6 +4,7 @@ Game.DynamicGlyph = function(properties) {
     Game.Glyph.call(this, properties);
     // Instantiate any properties from the passed object
     this._name = properties['name'] || '';
+    this._pluralName = properties['pluralName'] || this._name + 's';
     // Create an object which will keep track what mixins we have
     // attached to this entity based on the name property
     this._attachedMixins = {};
@@ -75,8 +76,12 @@ Game.DynamicGlyph.prototype.getName = function() {
     return this._name;
 };
 
-Game.DynamicGlyph.prototype.describe = function() {
-    return this._name;
+Game.DynamicGlyph.prototype.describe = function(plural) {
+    if (plural) {
+        return this._pluralName;
+    } else {
+        return this._name;
+    }
 };
 Game.DynamicGlyph.prototype.getDetails = function() {
     var details = '';
@@ -114,9 +119,9 @@ Game.DynamicGlyph.prototype.describeA = function(capitalize) {
 
     return prefixes[prefix] + ' ' + string;
 };
-Game.DynamicGlyph.prototype.describeThe = function(capitalize) {
+Game.DynamicGlyph.prototype.describeThe = function(capitalize, plural) {
     var prefix = capitalize ? 'The' : 'the';
-    return prefix + ' ' + this.describe();
+    return prefix + ' ' + this.describe(plural);
 };
 
 Game.DynamicGlyph.prototype.raiseEvent = function(event) {
