@@ -12,7 +12,7 @@ var Game = {
 	_screenWidth: 30,
     _screenHeight: 20,
     _fontSize: 26,
-    _menuScreenWidth: 50,
+    _menuScreenWidth: 60,
     _uiWidth: 60,
     _uiHeight: 8,
     _uiFontSize: 21,

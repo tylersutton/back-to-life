@@ -170,7 +170,7 @@ Game.ItemRepository.define('chainmail', {
     name: 'chainmail',
     pluralName: 'chainmail',
     character: '[',
-    foreground: 'aliceblue',
+    foreground: 'rgb(200,200,200)',
     defenseValue: 4,
     minZLevel: 2,
     maxZLevel: 6,
@@ -184,7 +184,7 @@ Game.ItemRepository.define('ironPlatemail', {
     name: 'iron platemail',
     pluralName: 'iron platemail',
     character: '[',
-    foreground: 'rgb(200,200,200)',
+    foreground: 'aliceblue',
     defenseValue: 6,
     minZLevel: 5,
     maxZLevel: 13,
@@ -215,11 +215,7 @@ Game.ItemRepository.define('scrollOfParalysis', {
     character: '♪',
     foreground: 'rgb(210,210,100)',
     paralysisDuration: 5,
-    wieldable: true,
-    doesDamage: false,
-    disposable: true,
-    ranged: true,
-    mixins: [Game.ItemMixins.Equippable, Game.ItemMixins.Scroll, Game.ItemMixins.Paralysis]
+    mixins: [Game.ItemMixins.Scroll, Game.ItemMixins.Paralysis]
 }, {
     
 });

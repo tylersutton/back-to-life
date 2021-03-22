@@ -201,7 +201,7 @@ Game.EntityMixins.Attacker = {
         // If we can equip items, then have to take into 
         // consideration weapon and armor
         if (this.hasMixin('Equipper')) {
-            if (this.getWeapon() && this.getWeapon().doesDamage()) {
+            if (this.getWeapon()) {
                 modifier += this.getWeapon().getAttackValue();
             }
             if (this.getArmor()) {
@@ -231,39 +231,63 @@ Game.EntityMixins.Attacker = {
         this._baseAttackValue += value;
         Game.sendMessage(this, "You look stronger!");
     },
-    attack: function(target, fromRanged) {
+    attack: function(target) {
         // If the target is destructible, calculate the damage
         // based on attack and defense value
         if (this != target && target.hasMixin('Destructible')) {
-            var weapon = this.hasMixin('Equipper') ? this.getWeapon() : null;
-            if (weapon && !weapon.doesDamage() 
-                && weapon.hasMixin('Scroll') && fromRanged) {
-                //console.log("is scroll");
-                if (weapon.hasMixin('Paralysis') && target.hasMixin('Mover') && target.isParalyzable()) {
-                    //console.log("does paralyze");
-                    target.paralyze(weapon.getParalysisDuration());
-                    Game.sendMessage(this, 'The %s is paralyzed!', [target.getName()]);
-                    Game.sendMessage(target, 'You are paralyzed!');
-                    //console.log("target " + target.getName() + " is paralyzed.")
-                }
-            } else {
-                var attack = this.getAttackValue();
-                var defense = target.getDefenseValue();
-                var damage;
-                if (attack == 0) {
-                    damage = 0;
-                }
-                else {
-                    damage = Math.max(0, Math.round(attack * attack / (attack + defense)));
-                }
-
-                Game.sendMessage(this, 'You strike the %s for %d damage!', 
-                    [target.getName(), damage]);
-                Game.sendMessage(target, 'The %s strikes you for %d damage!', 
-                    [this.getName(), damage]);
-
-                target.takeDamage(this, damage);
+            var attack = this.getAttackValue();
+            var defense = target.getDefenseValue();
+            var damage;
+            if (attack == 0) {
+                damage = 0;
             }
+            else {
+                damage = Math.max(0, Math.round(attack * attack / (attack + defense)));
+            }
+            Game.sendMessage(this, 'You strike the %s for %d damage!', 
+                [target.getName(), damage]);
+            Game.sendMessage(target, 'The %s strikes you for %d damage!', 
+                [this.getName(), damage]);
+            target.takeDamage(this, damage);
+        }
+    },
+    activateScroll: function(x, y, scroll) {
+        if (scroll && scroll.hasMixin('Scroll')) {
+            if (scroll.hasMixin('Paralysis')) {
+                var line = Game.getLine(this.getX(), this.getY(), x, y);
+                var path = [];
+                var target = null;
+                for (var i = 0; i < line.length; i++) {
+                    path.push(line[i]);
+                    target = this.getMap().getEntityAt(path[i].x, path[i].y, this.getZ());
+                    if (target && this != target) {
+                        i = line.length;
+                    }
+                }
+                Game.Screen.playScreen._waiting = true;
+                this.getMap().getEngine().lock();
+                var that = this;
+                //Game.sendMessage(this, 'You activate %s.', [scroll.describeThe()]);
+                new Game.Arrow({path: path}).go().then(function() {
+                    if (target && that != target) {
+                        if (target.hasMixin('Mover') && target.isParalyzable()) {
+                            target.paralyze(scroll.getParalysisDuration());
+                            Game.sendMessage(that, '%s is paralyzed!', [target.describeThe(true)]);
+                            Game.sendMessage(target, 'You are paralyzed!');
+                        } else {
+                            Game.sendMessage(that, "%s cannot be paralyzed.", [target.describeThe(true)]);
+                        }
+                    } else {
+                        Game.sendMessage(that, "You didn't hit anything.");
+                    }
+                    that.getMap().getEngine().unlock();
+                    Game.refresh();
+                    Game.Screen.playScreen._waiting = false;
+                });
+                return true;
+            }
+        } else {
+            return false;
         }
     },
     rangedAttack: function(x, y) {
@@ -283,41 +307,17 @@ Game.EntityMixins.Attacker = {
             Game.Screen.playScreen._waiting = true;
             this.getMap().getEngine().lock();
             var that = this;
-            if (this.getWeapon().doesDamage()) {
-                Game.sendMessage(this, 'You fire %s.', [this.getWeapon().describeThe()]);
-                new Game.Arrow({path: path}).go().then(function() {
-                    if (target && that != target) {
-                        that.attack(target, true);
-                    } else {
-                        Game.sendMessage(that, "You didn't hit anything.");
-                    }
-                    that.getMap().getEngine().unlock();
-                    Game.refresh();
-                    Game.Screen.playScreen._waiting = false;
-                });
-            } else {
-                Game.sendMessage(this, 'You activate %s.', [this.getWeapon().describeThe()]);
-                new Game.ScrollTrail({path: path}).go().then(function() {
-                    if (target && that != target) {
-                        that.attack(target);
-                        //console.log("target was hit");
-                    } else {
-                        Game.sendMessage(that, "You didn't hit anything.");
-                    }
-                    if (that.getWeapon().isDisposable()) {
-                        var items = that.getItems();
-                        for (var i = 0; i < items.length; i++) {
-                            if (items[i] == that.getWeapon()) {
-                                that.removeItem(i);
-                                i = items.length;
-                            }
-                        }
-                    }
-                    that.getMap().getEngine().unlock();
-                    Game.refresh();
-                    Game.Screen.playScreen._waiting = false;
-                });
-            }
+            Game.sendMessage(this, 'You fire %s.', [this.getWeapon().describeThe()]);
+            new Game.Arrow({path: path}).go().then(function() {
+                if (target && that != target) {
+                    that.attack(target);
+                } else {
+                    Game.sendMessage(that, "You didn't hit anything.");
+                }
+                that.getMap().getEngine().unlock();
+                Game.refresh();
+                Game.Screen.playScreen._waiting = false;
+            });
         }
     },
     listeners: {

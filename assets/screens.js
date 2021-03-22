@@ -20,40 +20,66 @@ Game.Screen.startScreen = {
     exit: function() { console.log("Exited start screen."); },
     render: function(display) {
         // Render our prompt to the screen
-        var title = "BACK TO LIFE!";
-        var description1 = "Due to an unfortunate mix-up, ";
-        var description2 = "you (@) have been ripped ";
-        var description3 = "from the earth and sent to Hell. ";
-        var description4 = "Fight your way to the depths of Hell,";
-        var description5 = "defeat the Ruler,";
-        var description6 = "and get your life back!";
+        var description1 = "______            _      _         ";
+        var description2 = "| ___ \\          | |    | |        ";
+        var description3 = "| |_/ / __ _  ___| | __ | |_ ___   ";
+        var description4 = "| ___ \\/ _` |/ __| |/ / | __/ _ \\  ";
+        var description5 = "| |_/ / (_| | (__|   <  | || (_) | ";
+        var description6 = "\\____/ \\__,_|\\___|_|\\_\\ \\__\\____/  ";
+        var description7 = "__     _  __     _ ";
+        var description8 = "| |   (_)/ _|   | |";
+        var description9 = "| |    _| |_ ___| |";
+        var description10 = "| |   | |  _/ _ \\ |";
+        var description11 = "| |___| | ||  __/_|";
+        var description12 = "\\_____/_|_| \\___(_)";
+        var descLength = 35;
+        var descLength2 = 19;
         var prompt = "Press [Enter] to start!";
-        var titleHeight = Math.floor(Game._screenHeight / 3)
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (title.length / 2)), 
-                         titleHeight, 
-                         "%c{orange}" + title
-        );
+        var titleHeight = 0;
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description1);
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description2);
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description3);
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description4);
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description5);
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description6);
+        titleHeight++;
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description7);
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description8);
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description9);
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description10);
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description11);
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+                        titleHeight++, 
+                        "%c{orange}" + description12);
         titleHeight += 2;
-        titleHeight++
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description1.length / 2)),
+        var subtitle = "%c{darkorange}A Roguelike %c{gray}by Tyler Sutton"
+
+        display.drawText(Math.floor((Game._menuScreenWidth / 2) - ((subtitle.length - 22) / 2)),
                         titleHeight++, 
-                        "%c{darkgrey}" + description1);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description2.length / 2)),
-                        titleHeight++, 
-                        "%c{darkgrey}" + description2);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description3.length / 2)),
-                        titleHeight++, 
-                        "%c{darkgrey}" + description3);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description4.length / 2)),
-                        titleHeight++, 
-                        "%c{darkgrey}" + description4);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description5.length / 2)),
-                        titleHeight++, 
-                        "%c{darkgrey}" + description5);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (description6.length / 2)),
-                        titleHeight++, 
-                        "%c{darkgrey}" + description6);
-        titleHeight+= 2;
+                        "" + subtitle);
+        titleHeight += 2;
         display.drawText(Math.floor((Game._menuScreenWidth / 2) - (prompt.length / 2)),
                         titleHeight++, 
                         "%c{white}" + prompt);
@@ -236,13 +262,13 @@ Game.Screen.playScreen = {
                 this.move(1, 0, 0);
             } else if ([40, 98].includes(inputData.keyCode)) { // down
                 this.move(0, 1, 0);
-            } else if (inputData.keyCode === 103) { // up/left
+            } else if ([103].includes(inputData.keyCode)) { // up/left
                 this.move(-1, -1, 0);
-            } else if (inputData.keyCode === 105) { // up-right
+            } else if ([105].includes(inputData.keyCode)) { // up-right
                 this.move(1, -1, 0);
-            } else if (inputData.keyCode === 99) { // down-right
+            } else if ([99].includes(inputData.keyCode)) { // down-right
                 this.move(1, 1, 0);
-            } else if (inputData.keyCode === 97) { // down-left
+            } else if ([97].includes(inputData.keyCode)) { // down-left
                 this.move(-1, 1, 0);
             } else if (inputData.key === 'z') { // wait
                 this.move(0, 0, 0);   
@@ -758,7 +784,15 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
                 //this.setup(this._player, this._player.getItems());
                 this._optionsOpen = false;
                 Game.refresh();
-            } else {
+            } else if (item && item.hasMixin('Scroll')) { 
+                Game.sendMessage(this._player, "You activate %s.", [item.describeThe()]);
+                Game.Screen.aimScreen.setup(this._player,
+                    this._player.getX(), this._player.getY(), item);
+                this._optionsOpen = false;
+                Game.refresh();
+                Game.Screen.playScreen.setSubScreen(Game.Screen.aimScreen);
+            }
+            else {
                 Game.sendMessage(this._player, "You can't apply %s.", [item.describeA()]);
                 Game.refresh();
             }
@@ -933,7 +967,7 @@ Game.Screen.TargetBasedScreen = function(template) {
     }
 };
 
-Game.Screen.TargetBasedScreen.prototype.setup = function(player, startX, startY) {
+Game.Screen.TargetBasedScreen.prototype.setup = function(player, startX, startY, item) {
     this._player = player;
     // Store original position. Subtract the offset to make life easy so we don't
     // always have to remove it.
@@ -943,6 +977,7 @@ Game.Screen.TargetBasedScreen.prototype.setup = function(player, startX, startY)
     this._cursorX = this._startX;
     this._cursorY = this._startY;
     this._caption = '';
+    this._item = item;
     // Cache the FOV
     var visibleCells = {};
     this._player.getMap().getFov(this._player.getZ()).compute(
@@ -1126,6 +1161,10 @@ Game.Screen.aimScreen = new Game.Screen.TargetBasedScreen({
         }
     },
     okFunction: function(x, y) {
+        if (this._item && this._item.hasMixin('Scroll')) {
+            this._player.activateScroll(x, y, this._item);
+            this._player.removeItemByObject(this._item);
+        }
         this._player.rangedAttack(x, y);
         return true;
     }
