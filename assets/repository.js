@@ -12,8 +12,8 @@ Game.Repository = function(name, ctor) {
 Game.Repository.prototype.define = function(name, template, options) {
     this._templates[name] = template;
     // Apply any options
-    var disableRandomCreation = options && options['disableRandomCreation'];
-    var uniqueCreation = options && options['enableUniqueCreation'];
+    var disableRandomCreation = options && options.disableRandomCreation;
+    var uniqueCreation = options && options.enableUniqueCreation;
     if (!disableRandomCreation && !uniqueCreation) {
         this._randomTemplates[name] = template;
     } else if (uniqueCreation) {
@@ -51,11 +51,12 @@ Game.Repository.prototype.createRandom = function(z, includedMixins, excludedMix
     for (var key in this._randomTemplates) {
         //console.log("template name: " + this._randomTemplates[key].name);
         if (this._randomTemplates[key].name) {
-            var minZ = this._randomTemplates[key]['minZLevel'] || 0;
-            var maxZ = this._randomTemplates[key]['maxZLevel'] || 1000;
+            var minZ = this._randomTemplates[key].minZLevel || 0;
+            var maxZ = this._randomTemplates[key].maxZLevel || 1000;
             //console.log("name: " + this._randomTemplates[key].name + ", minZ: " + minZ + ", maxZ: " + maxZ);
-            if (!mixinsRequired && !mixinsExcluded && z >= minZ && z <= maxZ 
-                    && (!argRequired || this._randomTemplates[key][arg])) {
+            if (!mixinsRequired && !mixinsExcluded && 
+                    z >= minZ && z <= maxZ && 
+                    (!argRequired || this._randomTemplates[key][arg])) {
                 validKeys.push(key);     
             } else {
                 var valid = true;
@@ -73,7 +74,7 @@ Game.Repository.prototype.createRandom = function(z, includedMixins, excludedMix
                 if (includedMixins) {
                     var found = false;
                     for (var i = 0; i < includedMixins.length; i++) {
-                        if (this._randomTemplates[key]['mixins'].includes(includedMixins[i])) {
+                        if (this._randomTemplates[key].mixins.includes(includedMixins[i])) {
                             found = true;
                         }
                     }
@@ -85,7 +86,7 @@ Game.Repository.prototype.createRandom = function(z, includedMixins, excludedMix
                 // key is invalid if any excluded mixins are present
                 if (excludedMixins) {
                     for (var i = 0; i < excludedMixins.length; i++) {
-                        if (this._randomTemplates[key]['mixins'].includes(excludedMixins[i])) {
+                        if (this._randomTemplates[key].mixins.includes(excludedMixins[i])) {
                             //console.log("found excluded mixin");
                             valid = false;
                         }

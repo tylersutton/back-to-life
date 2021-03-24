@@ -1,12 +1,12 @@
 Game.MapGen = function(properties) {
-    var properties = properties || {};
-    this._width = properties['width'];
-    this._height = properties['height'];
-    this._depth = properties['depth'];
-    this._minRoomWidth = properties['minRoomWidth'];
-    this._minRoomHeight = properties['minRoomHeight'] || this._minRoomWidth;
-    this._maxRoomWidth = properties['maxRoomWidth'];
-    this._maxRoomHeight = properties['maxRoomHeight'] || this._maxRoomWidth;
+    properties = properties || {};
+    this._width = properties.width;
+    this._height = properties.height;
+    this._depth = properties.depth;
+    this._minRoomWidth = properties.minRoomWidth;
+    this._minRoomHeight = properties.minRoomHeight || this._minRoomWidth;
+    this._maxRoomWidth = properties.maxRoomWidth;
+    this._maxRoomHeight = properties.maxRoomHeight || this._maxRoomWidth;
     this._tiles = [];
     this._rooms = [];
     // generate each level
@@ -23,20 +23,20 @@ Game.MapGen = function(properties) {
     }
     this.generateLevel(0);
     
-}
+};
 
 Game.MapGen.prototype.getTiles = function () {
     return this._tiles;
-}
+};
 Game.MapGen.prototype.getDepth = function () {
     return this._depth;
-}
+};
 Game.MapGen.prototype.getWidth = function () {
     return this._width;
-}
+};
 Game.MapGen.prototype.getHeight = function () {
     return this._height;
-}
+};
 
 Game.MapGen.prototype.generateLevel = function(z) {
     this.fillBorder(z);
@@ -47,7 +47,7 @@ Game.MapGen.prototype.generateLevel = function(z) {
     if (z > 0) {
         this.connectFloor(z);
     }
-}
+};
 
 // lays floor tiles within screen bounds,
 // and fills the border with wall tiles
@@ -68,7 +68,7 @@ Game.MapGen.prototype.fillBorder = function(z) {
         }
     }
     return;
-}
+};
 
 Game.MapGen.prototype.fillDeadEnds = function(z, maxFills) {
     var map = this._tiles[z];
@@ -96,7 +96,7 @@ Game.MapGen.prototype.fillDeadEnds = function(z, maxFills) {
     }
     this._rooms[z] = rooms;
     return;
-}
+};
 
 Game.MapGen.prototype.fillRoom = function(z, room, doors) {
     var map = this._tiles[z];
@@ -115,7 +115,7 @@ Game.MapGen.prototype.fillRoom = function(z, room, doors) {
             map[x][y] = Game.Tile.wallTile;
         }
     }
-}
+};
 
 Game.MapGen.prototype.makeCorridors = function(z, maxCorridors) {
     var map = this._tiles[z];
@@ -137,7 +137,7 @@ Game.MapGen.prototype.makeCorridors = function(z, maxCorridors) {
         }
     }
     return;
-}
+};
 
 Game.MapGen.prototype.makeCorridor = function(z, room, doors) {
     var map = this._tiles[z];
@@ -156,7 +156,7 @@ Game.MapGen.prototype.makeCorridor = function(z, room, doors) {
             map[path[j].x][path[j].y] = Game.Tile.floorTile;
         }
     }
-}
+};
 
 Game.MapGen.prototype.getDoors = function(z, room) {
     var map = this._tiles[z];
@@ -167,14 +167,14 @@ Game.MapGen.prototype.getDoors = function(z, room) {
     var doors = [];
     for (x = left; x < left + w; x++) {
         for (var y = top; y < top + h; y++) {
-            if ((x == left || x == left + w - 1 || y == top || y == top + h - 1)
-                    && map[x][y] == Game.Tile.doorTile) {
+            if ((x == left || x == left + w - 1 || y == top || y == top + h - 1) && 
+                    map[x][y] == Game.Tile.doorTile) {
                 doors.push({x: x, y: y});
             }
         }
     }
     return doors;
-}
+};
 
 // helper function to see if a wall tile has
 // two floor tiles as opposite orthogonal neighbors,
@@ -188,7 +188,7 @@ Game.MapGen.prototype.getOrthoNeighbors = function(x, y, z) {
         return [{x: x, y: y-1}, {x: x, y: y+1}];
     }
     return null;
-}
+};
 
 // turns walls into floor until no two 
 // floor tiles are more than maxDist apart
@@ -218,7 +218,7 @@ Game.MapGen.prototype.addDoors = function (z, maxDist) {
     // between neighbors is above threshold
     //console.log("number of candidates: " + candidates.length);
     var count = 0;
-    for (var i = 0; i < candidates.length; i++) {
+    for (i = 0; i < candidates.length; i++) {
         var dist = Game.findDistance(this._tiles, z, candidates[i].pair[0].x, candidates[i].pair[0].y, 
                                       candidates[i].pair[1].x, candidates[i].pair[1].y);
         //console.log("distance: " + dist);
@@ -230,7 +230,7 @@ Game.MapGen.prototype.addDoors = function (z, maxDist) {
     }
     //console.log(count + " candidates converted to floor.");
     return;
-}
+};
 
 // creates rooms in map using a bsp tree
 // dir = 0 if vertical, 1 if horizontal
@@ -294,7 +294,7 @@ Game.MapGen.prototype.bsp = function(left, top, w, h, z) {
         this.bsp(left, mid+1, w, top+h-mid-1, z);
         return;
     }
-}
+};
 
 Game.MapGen.prototype.connectFloor = function(z) {
     var x, y;
@@ -304,4 +304,4 @@ Game.MapGen.prototype.connectFloor = function(z) {
     } while(! ((this._tiles[z-1][x][y] == Game.Tile.floorTile) && (this._tiles[z][x][y] == Game.Tile.floorTile)));
     this._tiles[z-1][x][y] = Game.Tile.stairsDownTile;
     this._tiles[z][x][y] = Game.Tile.stairsUpTile;
-}
+};

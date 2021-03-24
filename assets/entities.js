@@ -7,7 +7,7 @@ Game.PlayerTemplate = {
     baseAttackValue: 5,
     attackDice: 4,
     sightRadius: 8,
-    inventorySlots: 16,
+    inventorySlots: 25,
     mixins: [Game.EntityMixins.PlayerActor, Game.EntityMixins.InventoryHolder,
              Game.EntityMixins.Attacker, Game.EntityMixins.Destructible,
              Game.EntityMixins.Sight, Game.EntityMixins.MessageRecipient,

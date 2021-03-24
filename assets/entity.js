@@ -3,11 +3,11 @@ Game.Entity = function(properties) {
     // Call the glyph's construtor with our set of properties
     Game.DynamicGlyph.call(this, properties);
     // Instantiate any properties from the passed object
-    this._name = properties['name'] || '';
-    this._x = properties['x'] || 0;
-    this._y = properties['y'] || 0;
-    this._z = properties['z'] || 0;
-    this._speed = properties['speed'] || 1000;
+    this._name = properties.name || '';
+    this._x = properties.x || 0;
+    this._y = properties.y || 0;
+    this._z = properties.z || 0;
+    this._speed = properties.speed || 1000;
     this._map = null;
     this._alive = true;
     
@@ -18,7 +18,7 @@ Game.Entity = function(properties) {
     // Create a similar object for groups
     this._attachedMixinGroups = {};
     // Setup the object's mixins
-    var mixins = properties['mixins'] || [];
+    var mixins = properties.mixins || [];
     for (var i = 0; i < mixins.length; i++) {
         // Copy over all properties from each mixin as long
         // as it's not the name or the init property. We
@@ -46,16 +46,16 @@ Game.Entity = function(properties) {
 Game.Entity.extend(Game.DynamicGlyph);
 
 // getters/setters
-Game.Entity.prototype.getMap = function() { return this._map; }
-Game.Entity.prototype.setMap = function(map) { this._map = map; }
+Game.Entity.prototype.getMap = function() { return this._map; };
+Game.Entity.prototype.setMap = function(map) { this._map = map; };
 Game.Entity.prototype.getSpeed = function() { return this._speed; };
 Game.Entity.prototype.setSpeed = function(speed) { this._speed = speed; };
-Game.Entity.prototype.getX = function() { return this._x; }
-Game.Entity.prototype.getY = function() { return this._y; }
-Game.Entity.prototype.getZ = function() { return this._z; }
-Game.Entity.prototype.setX = function(x) { this._x = x; }
-Game.Entity.prototype.setY = function(y) { this._y = y; }
-Game.Entity.prototype.setZ = function(z) { this._z = z; }
+Game.Entity.prototype.getX = function() { return this._x; };
+Game.Entity.prototype.getY = function() { return this._y; };
+Game.Entity.prototype.getZ = function() { return this._z; };
+Game.Entity.prototype.setX = function(x) { this._x = x; };
+Game.Entity.prototype.setY = function(y) { this._y = y; };
+Game.Entity.prototype.setZ = function(z) { this._z = z; };
 
 
 
@@ -79,9 +79,9 @@ Game.Entity.prototype.getPosition = function() {
         y: this._y, 
         z: this._z
     };
-}
+};
 
-Game.Entity.prototype.tryMove = function(x, y, z, map) {
+Game.Entity.prototype.tryMove = function(x, y, z) {
     // Must use starting z
     var map = this.getMap();
     var tile = map.getTile(x, y, this.getZ());
@@ -128,7 +128,7 @@ Game.Entity.prototype.tryMove = function(x, y, z, map) {
         if (items) {
             if (items.length === 1) {
                 if (this.hasMixin('PlayerActor')) {
-                    var itemDescription = items[0].describeA()
+                    var itemDescription = items[0].describeA();
                     if (this.pickupAllItems()) {
                         Game.sendMessage(this, "You pick up %s.", [itemDescription]);
                     } else {

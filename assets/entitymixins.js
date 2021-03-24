@@ -31,7 +31,7 @@ Game.EntityMixins.TaskActor = {
     groupName: 'Actor',
     init: function(template) {
         // Load tasks
-        this._tasks = template['tasks'] || ['wander'];
+        this._tasks = template.tasks || ['wander'];
     },
     act: function() {
         // Iterate through all our tasks
@@ -75,13 +75,14 @@ Game.EntityMixins.TaskActor = {
         var items = this.getMap().getItemsWithinRadius(this.getX(), this.getY(), this.getZ(), this.getSightRadius());
             if (items) {
                 var paths = [];
+                var path;
                 for (var i = 0; i < items.length; i++) {
                     var pos = this.getMap().getItemPosition(items[i]);
                     if (this.getX() == pos[0] && this.getY() == pos[1] && this.getZ() == pos[2]) {
                         this.pickupItems([0]);
                         return;
                     } else if (this.canSeeItem(items[i])) {
-                        var path = Game.findShortestPath(map._tiles, this.getZ(), 
+                        path = Game.findShortestPath(map._tiles, this.getZ(), 
                         this.getX(), this.getY(), pos[0], pos[1]);
                         if (path) {
                             paths.push(path);
@@ -91,15 +92,15 @@ Game.EntityMixins.TaskActor = {
                 if (paths) {
                     var length = 1000;
                     var shortestPath = paths[0];
-                    for (var i = 0; i < paths.length; i++) {
-                        var path = paths[i];
+                    for (i = 0; i < paths.length; i++) {
+                        path = paths[i];
                         if (path && path.length < length) {
                             length = path.length;
                             shortestPath = path;
                         }
                     }
                     if (shortestPath) {
-                        this.tryMove(shortestPath[1].x, shortestPath[1].y, this.getZ(), map);
+                        this.tryMove(shortestPath[1].x, shortestPath[1].y, this.getZ());
                     }
                 }
             }
@@ -121,13 +122,13 @@ Game.EntityMixins.TaskActor = {
         var path = Game.findShortestPath(map._tiles, this.getZ(), 
                 this.getX(), this.getY(), player.getX(), player.getY());
                 if (path) {
-                    this.tryMove(path[1].x, path[1].y, this.getZ(), map);
+                    this.tryMove(path[1].x, path[1].y, this.getZ());
                 }
     },
     wander: function() {
         dx = Math.round(Math.random() * 2 - 1);
         dy = Math.round(Math.random() * 2 - 1);
-        this.tryMove(this.getX() + dx, this.getY() + dy, this.getZ(), this.getMap());
+        this.tryMove(this.getX() + dx, this.getY() + dy, this.getZ());
     }
 };
 
@@ -173,7 +174,7 @@ Game.EntityMixins.RulerActor = Game.extend(Game.EntityMixins.TaskActor, {
         // Create the entity
         var slime = Game.EntityRepository.create('Slime');
         slime.setX(this.getX() + xOffset);
-        slime.setY(this.getY() + yOffset)
+        slime.setY(this.getY() + yOffset);
         slime.setZ(this.getZ());
         this.getMap().addEntity(slime);
     },
@@ -190,8 +191,8 @@ Game.EntityMixins.Attacker = {
     name: 'Attacker',
     groupName: 'Attacker',
     init: function(template) {
-        this._baseAttackValue = template['baseAttackValue'] || 1;
-        this._attackDice = template['attackDice'] || 1;
+        this._baseAttackValue = template.baseAttackValue || 1;
+        this._attackDice = template.attackDice || 1;
     },
     getAttackDice: function() {
         return this._attackDice;
@@ -254,14 +255,18 @@ Game.EntityMixins.Attacker = {
     activateScroll: function(x, y, scroll) {
         if (scroll && scroll.hasMixin('Scroll')) {
             if (scroll.hasMixin('Paralysis')) {
-                var line = Game.getLine(this.getX(), this.getY(), x, y);
+                var line = Game.getLine(this.getX(), this.getY(), x, y, true);
                 var path = [];
                 var target = null;
                 for (var i = 0; i < line.length; i++) {
                     path.push(line[i]);
+                    // stop path if it hits a nonwalkable space
+                    if (!this.getMap().getTile(path[i].x, path[i].y, this.getZ()).isWalkable()) {
+                        break;
+                    }
                     target = this.getMap().getEntityAt(path[i].x, path[i].y, this.getZ());
                     if (target && this != target) {
-                        i = line.length;
+                        break;
                     }
                 }
                 Game.Screen.playScreen._waiting = true;
@@ -292,16 +297,24 @@ Game.EntityMixins.Attacker = {
     },
     rangedAttack: function(x, y) {
         //console.log("called ranged attack.")
+        if (x === this.getX() && y === this.getY()) {
+            Game.sendMessage(this, "You can't shoot yourself!");
+            return;
+        }
         if (this.hasMixin('Equipper') && this.getWeapon() && this.getWeapon().isRanged()) {
             //console.log("can shoot a weapon")
-            var line = Game.getLine(this.getX(), this.getY(), x, y);
+            var line = Game.getLine(this.getX(), this.getY(), x, y, true);
             var path = [];
             var target = null;
             for (var i = 0; i < line.length; i++) {
                 path.push(line[i]);
+                // stop path if it hits a nonwalkable space
+                if (!this.getMap().getTile(path[i].x, path[i].y, this.getZ()).isWalkable()) {
+                    break;
+                }
                 target = this.getMap().getEntityAt(path[i].x, path[i].y, this.getZ());
                 if (target && this != target) {
-                    i = line.length;
+                    break;
                 }
             }
             Game.Screen.playScreen._waiting = true;
@@ -331,15 +344,15 @@ Game.EntityMixins.Attacker = {
 Game.EntityMixins.Destructible = {
     name: 'Destructible',
     init: function(template) {
-        this._maxHp = template['maxHp'] || 10;
+        this._maxHp = template.maxHp || 10;
         // We allow taking in health from the template incase we want
         // the entity to start with a different amount of HP than the 
         // max specified.
-        this._hp = template['hp'] || this._maxHp;
-        this._defenseValue = template['defenseValue'] || 0;
-        this._canHeal = (template['canHeal'] !== undefined) ?
-            template['canHeal'] : true;
-        this._healingFactor = template['healingFactor'] || 1;
+        this._hp = template.hp || this._maxHp;
+        this._defenseValue = template.defenseValue || 0;
+        this._canHeal = (template.canHeal !== undefined) ?
+            template.canHeal : true;
+        this._healingFactor = template.healingFactor || 1;
     },
     getDefenseValue: function() {
         var modifier = 0;
@@ -468,10 +481,10 @@ Game.EntityMixins.Destructible = {
 Game.EntityMixins.Mover = {
     name: 'Mover',
     init: function(template) {
-        this._canMove = (template['canMove'] !== undefined) ?
-            template['canMove'] : true;
-        this._paralyzable = (template['isParalyzable'] !== undefined) ?
-            template['isParalyzable'] : true;
+        this._canMove = (template.canMove !== undefined) ?
+            template.canMove : true;
+        this._paralyzable = (template.isParalyzable !== undefined) ?
+            template.isParalyzable : true;
     },
     paralyze: function(duration) {
         if (this._paralyzable) {
@@ -494,14 +507,14 @@ Game.EntityMixins.Mover = {
     isParalyzed: function() {
         return !this._canMove;
     }
-}
+};
 
 // This signifies our entity posseses a field of vision of a given radius.
 Game.EntityMixins.Sight = {
     name: 'Sight',
     groupName: 'Sight',
     init: function(template) {
-        this._sightRadius = template['sightRadius'] || 5;
+        this._sightRadius = template.sightRadius || 5;
     },
     getSightRadius: function() {
         return this._sightRadius;
@@ -603,7 +616,7 @@ Game.EntityMixins.Sight = {
                             });
                         if (found) {
                             return true;
-                        };
+                        }
                     }
                 }
             }
@@ -652,7 +665,7 @@ Game.EntityMixins.InventoryHolder = {
     name: 'InventoryHolder',
     init: function(template) {
         // Default to 10 inventory slots.
-        var inventorySlots = template['inventorySlots'] || 10;
+        var inventorySlots = template.inventorySlots || 10;
         // Set up an empty inventory.
         this._items = new Array(inventorySlots);
     },
@@ -772,9 +785,9 @@ Game.EntityMixins.InventoryHolder = {
 Game.EntityMixins.ExperienceGainer = {
     name: 'ExperienceGainer',
     init: function(template) {
-        this._level = template['level'] || 1;
-        this._experience = template['experience'] || 0;
-        this._statPointsPerLevel = template['statPointsPerLevel'] || 1;
+        this._level = template.level || 1;
+        this._experience = template.experience || 0;
+        this._statPointsPerLevel = template.statPointsPerLevel || 1;
         this._statPoints = 0;
         // Determine what stats can be levelled up.
         this._statOptions = [];
@@ -803,8 +816,8 @@ Game.EntityMixins.ExperienceGainer = {
         }
     },
     getCurrentLevelProgress: function() {
-        var progress = (this._experience - this.getCurrentLevelExperience()) 
-            / (this.getNextLevelExperience() - this.getCurrentLevelExperience());
+        var progress = (this._experience - this.getCurrentLevelExperience()) / 
+            (this.getNextLevelExperience() - this.getCurrentLevelExperience());
         //console.log(progress);
         return progress;
     },

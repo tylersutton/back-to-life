@@ -44,7 +44,7 @@ Game.Map.Dungeon.prototype.populateDungeon = function(z, player) {
         var wieldable = Game.ItemRepository.createRandom(
             z, 
             [Game.ItemMixins.Equippable],
-            [Game.ItemMixins.Scroll],
+            null,
             'wieldable'
         );
         this.addItemAtRandomPosition(wieldable, z);
@@ -54,7 +54,7 @@ Game.Map.Dungeon.prototype.populateDungeon = function(z, player) {
         var wearable = Game.ItemRepository.createRandom(
             z, 
             [Game.ItemMixins.Equippable],
-            [Game.ItemMixins.Scroll],
+            null,
             'wearable'
         );
         this.addItemAtRandomPosition(wearable, z);

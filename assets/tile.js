@@ -3,10 +3,10 @@ Game.Tile = function(properties) {
     // Call the Glyph constructor with our properties
     Game.Glyph.call(this, properties);
     // Set up the properties. We use false by default.
-    this._walkable = properties['walkable'] || false;
-    this._blocksLight = (properties['blocksLight'] !== undefined) ?
-        properties['blocksLight'] : true;
-    this._description = properties['description'] || '';
+    this._walkable = properties.walkable || false;
+    this._blocksLight = (properties.blocksLight !== undefined) ?
+        properties.blocksLight : true;
+    this._description = properties.description || '';
 };
 // Make tiles inherit all the functionality from glyphs
 Game.Tile.extend(Game.Glyph);
@@ -18,28 +18,30 @@ Game.Tile.prototype.getDescription = function() {
 // Standard getters
 Game.Tile.prototype.isWalkable = function() {
     return this._walkable;
-}
+};
+
 Game.Tile.prototype.isBlockingLight = function() {
     return this._blocksLight;
-}
+};
 
 Game.Tile.prototype.isStairs = function() {
     return (this.isStairsUp() || this.isStairsDown());
-}
+};
 
 Game.Tile.prototype.isStairsUp = function() {
     return this == Game.Tile.stairsUpTile;
-}
+};
 
 Game.Tile.prototype.isStairsDown = function() {
     return this == Game.Tile.stairsDownTile;
-}
+};
 
 Game.Tile.prototype.isHoleToCavern = function() {
     return this == Game.Tile.holeToCavernTile;
-}
+};
 
-Game.Tile.nullTile = new Game.Tile({})
+Game.Tile.nullTile = new Game.Tile({});
+
 Game.Tile.floorTile = new Game.Tile({
     character: '.',
     walkable: true,

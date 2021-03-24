@@ -1,3 +1,4 @@
+/*jshint esversion: 8 */
 
 Game.extend = function(src, dest) {
     // Create a copy of the source.
@@ -6,14 +7,20 @@ Game.extend = function(src, dest) {
         result[key] = src[key];
     }
     // Copy over all keys from dest
-    for (var key in dest) {
+    for (key in dest) {
         result[key] = dest[key];
     }
     return result;
 };
 
-Game.getLine = function(startX, startY, endX, endY) {
+Game.getLine = function(startX, startY, endX, endY, extrapolate) {
     var points = [];
+    
+    minX = 0;
+    maxX = Game.getScreenWidth()-1;
+    minY = 0; 
+    maxY = Game.getScreenHeight()-1;
+    
     var dx = Math.abs(endX - startX);
     var dy = Math.abs(endY - startY);
     var sx = (startX < endX) ? 1 : -1;
@@ -22,8 +29,29 @@ Game.getLine = function(startX, startY, endX, endY) {
     var e2;
     while (true) {
         points.push({x: startX, y: startY});
-        if (startX == endX && startY == endY) {
+        if (!extrapolate && startX == endX && startY == endY) {
             break;
+        } else if (extrapolate) {
+            var done = false;
+            if (startX <= minX) {
+                startX = minX;
+                done = true;
+            } 
+            if (startX >= maxX) {
+                startX = maxX;
+                done = true;
+            } 
+            if (startY <= minY) {
+                startY = minY;
+                done = true;
+            } 
+            if (startY >= maxY) {
+                startY = maxY;
+                done = true;
+            }
+            if (done) {
+                break;
+            }
         }
         e2 = err * 2;
         if (e2 > -dx) {
@@ -37,7 +65,6 @@ Game.getLine = function(startX, startY, endX, endY) {
     }
     return points;
 };
-
 
 // Finds shortest path between two cells in 2d map
 // using breadth-first search
@@ -76,11 +103,12 @@ Game.findShortestPath = function(map3d, z, x1, y1, x2, y2, orthogonalOnly) {
                 if (gameMap && gameMap.getEntityAt(i, j, x)) {
                     hasEntity = true;
                 }
-                if (((!ortho && !(i == v.x && j == v.y)) 
-                || (ortho && (i == v.x ? !(j == v.y) : j == v.y)))
-                 && i >= 0 && i < width && j >= 0 && j < height) {
-                    if (!visited[i][j] && map[i][j] && map[i][j]._walkable 
-                        && !(hasEntity && !(i == x2 && j == y2))) {
+                if (((!ortho && !(i == v.x && j == v.y)) || 
+                        // confusing way to do xor
+                        (ortho && (i == v.x ? j != v.y : j == v.y))) && 
+                        i >= 0 && i < width && j >= 0 && j < height) {
+                    if (!visited[i][j] && map[i][j] && map[i][j]._walkable && 
+                            !(hasEntity && !(i == x2 && j == y2))) {
                         visited[i][j] = true;
                         if ((i != v.x) && (j != v.y)) {
                             dist[i][j] = dist[v.x][v.y] + 1000000;
@@ -111,7 +139,7 @@ Game.findShortestPath = function(map3d, z, x1, y1, x2, y2, orthogonalOnly) {
     }
     return null;
     
-}
+};
 
 Game.findDistance = function(map, z, x1, x2, y1, y2) {
     var path = this.findShortestPath(map, z, x1, x2, y1, y2);
@@ -121,7 +149,7 @@ Game.findDistance = function(map, z, x1, x2, y1, y2) {
     else {
         return -1;
     }
-}
+};
 
 Game.getNeighborPositions = function(x, y) {
     var tiles = [];
@@ -136,15 +164,15 @@ Game.getNeighborPositions = function(x, y) {
         }
     }
     return tiles.randomize();
-}
+};
 
 // shuffles an array pseudo-randomly
 Game.shuffle = function(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+    for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
     }
-}
+};
 
 function Queue() {
     this.elements = [];
@@ -155,17 +183,17 @@ Queue.prototype.getElements = function() {
     for (var i = 0; i < this.length; i++) {
         elems.push(this.elements[i]);
     }
-}
+};
 
 Queue.prototype.setElements = function(elems) {
     this.elements = elems;
-}
+};
 
 Queue.prototype.sort = function(dist) {
     this.elements.sort(function(a,b) {
         return dist[a.x][a.y] - dist[b.x][b.y];
     });
-}
+};
 
 Queue.prototype.enqueue = function (e) {
     this.elements.push(e);

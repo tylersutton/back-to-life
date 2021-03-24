@@ -1,3 +1,5 @@
+/*jshint esversion: 8 */
+
 const VK_RETURN = 13;
 const VK_ESCAPE = 27;
 const VK_A = 65;
@@ -74,7 +76,7 @@ Game.Screen.startScreen = {
                         titleHeight++, 
                         "%c{orange}" + description12);
         titleHeight += 2;
-        var subtitle = "%c{darkorange}A Roguelike %c{gray}by Tyler Sutton"
+        var subtitle = "%c{darkorange}A Roguelike %c{gray}by Tyler Sutton";
 
         display.drawText(Math.floor((Game._menuScreenWidth / 2) - ((subtitle.length - 22) / 2)),
                         titleHeight++, 
@@ -95,7 +97,7 @@ Game.Screen.startScreen = {
             }
         }
     }
-}
+};
 
 // Define our playing screen
 Game.Screen.playScreen = {
@@ -132,7 +134,7 @@ Game.Screen.playScreen = {
         
         // Create our player and set the position
         this._player = new Game.Entity(Game.PlayerTemplate);
-        this._player.addItem(Game.ItemRepository.create('scrollOfParalysis'));
+        this._player.addItem(Game.ItemRepository.createRandom(0, [Game.ItemMixins.Equippable], null, 'ranged'));
         // Create our map from the tiles
         var map = new Game.Map.Dungeon(tiles, this._player);
         
@@ -202,7 +204,7 @@ Game.Screen.playScreen = {
                             tile = items[items.length - 1];
                         }
                         if (map.getEntityAt(x, y, currentDepth)) {
-                            tile = map.getEntityAt(x, y, currentDepth)
+                            tile = map.getEntityAt(x, y, currentDepth);
                         }
                         foreground = tile.getForeground();
                     }
@@ -254,32 +256,37 @@ Game.Screen.playScreen = {
         // Handle playScreen input
         else if (inputType === 'keydown' && !this._waiting) {
             // Movement
-            if ([37, 100].includes(inputData.keyCode)) { // left
+            if ([37, 52, 100].includes(inputData.keyCode)) { // left/both 4's
                 this.move(-1, 0, 0);
-            } else if ([38, 104].includes(inputData.keyCode)) { // up
+            } else if ([38, 56, 104].includes(inputData.keyCode)) { // up/both 8's
                 this.move(0, -1, 0);
-            } else if ([39, 102].includes(inputData.keyCode)) { // right
+            } else if ([39, 54, 102].includes(inputData.keyCode)) { // right/both 6's
                 this.move(1, 0, 0);
-            } else if ([40, 98].includes(inputData.keyCode)) { // down
+            } else if ([40, 50, 98].includes(inputData.keyCode)) { // down/both 2's
                 this.move(0, 1, 0);
-            } else if ([103].includes(inputData.keyCode)) { // up/left
+            } else if ([55, 103].includes(inputData.keyCode)) { // up-left/both 7's
                 this.move(-1, -1, 0);
-            } else if ([105].includes(inputData.keyCode)) { // up-right
+            } else if ([57, 105].includes(inputData.keyCode)) { // up-right/both 9's
                 this.move(1, -1, 0);
-            } else if ([99].includes(inputData.keyCode)) { // down-right
+            } else if ([51, 99].includes(inputData.keyCode)) { // down-right/both 3's
                 this.move(1, 1, 0);
-            } else if ([97].includes(inputData.keyCode)) { // down-left
+            } else if ([49, 97].includes(inputData.keyCode)) { // down-left/both 1's
                 this.move(-1, 1, 0);
             } else if (inputData.key === 'z') { // wait
                 this.move(0, 0, 0);   
             } else if (inputData.key === 'Enter') {
-                if (map.getTile(this._player.getX(), this._player.getY(), this._player.getZ()).isStairsUp()) {
+                var tile = map.getTile(
+                    this._player.getX(), 
+                    this._player.getY(), 
+                    this._player.getZ()
+                );
+                if (tile.isStairsUp()) {
                     this.move(0, 0, -1);
-                } else if (map.getTile(this._player.getX(), this._player.getY(), this._player.getZ()).isStairsDown()
-                    || map.getTile(this._player.getX(), this._player.getY(), this._player.getZ()).isHoleToCavern()) {
+                } else if (tile.isStairsDown() ||
+                        tile.isHoleToCavern()) {
                     this.move(0, 0, 1);
                 }
-            } else if (inputData.key === 'i') {
+            } else if (inputData.key === 'i') { // inventory
                 if (this._player.getItems().filter(function(x){return x;}).length === 0) {
                     // If the player has no items, send a message and don't take a turn
                     Game.sendMessage(this._player, "You're not carrying anything.");
@@ -290,50 +297,31 @@ Game.Screen.playScreen = {
                     this.setSubScreen(Game.Screen.inventoryScreen);
                 }
                 return;
-            } else if (inputData.key === 'h') {
+            } else if (inputData.key === 'h') { // quick-heal
                 this._player.healWithItem();
                 map.getEngine().unlock();
                 Game.refresh();
                 return;
-            } else if (inputData.key === 'l') {
+            } else if (inputData.key === 'l') { // look
                 // Setup the look screen.
                 Game.sendMessage(this._player, "You look around. Press [Esc] to cancel.");
                 Game.Screen.lookScreen.setup(this._player,
                     this._player.getX(), this._player.getY());
                 this.setSubScreen(Game.Screen.lookScreen);
                 return;
-            } else if (inputData.key === 'f') {
+            } else if (inputData.key === 'f') { // fire (aim)
                 // Setup the aim screen.
-                Game.sendMessage(this._player, "Press [Enter] to fire or [Esc] to cancel.");
-                Game.Screen.aimScreen.setup(this._player,
-                    this._player.getX(), this._player.getY());
-                this.setSubScreen(Game.Screen.aimScreen);
-                return;
-            /*
-            } else if (inputData.key === 'p') {
-                var items = map.getItemsAt(this._player.getX(), this._player.getY(), this._player.getZ());
-                // If there are no items, show a message
-                if (!items) {
-                    Game.sendMessage(this._player, "There is nothing here to pick up.");
-                    Game.refresh();
-                } else if (items.length === 1) {
-                    // If only one item, try to pick it up
-                    var item = items[0];
-                    if (this._player.pickupItems([0])) {
-                        Game.sendMessage(this._player, "You pick up %s.", [item.describeA()]);
-                        Game.refresh();
-                    } else {
-                        Game.sendMessage(this._player, "Your inventory is full! Nothing was picked up.");
-                        Game.refresh();
-                    }
+                if (this._player.getWeapon() && this._player.getWeapon().isRanged()) {
+                    Game.sendMessage(this._player, "Press [f] to fire or [Esc] to cancel.");
+                    Game.Screen.aimScreen.setup(this._player,
+                        this._player.getX(), this._player.getY());
+                    this.setSubScreen(Game.Screen.aimScreen);                
                 } else {
-                    // Show the pickup screen if there are any items
-                    Game.Screen.pickupScreen.setup(this._player, items);
-                    this.setSubScreen(Game.Screen.pickupScreen);
-                    return;
+                    Game.sendMessage(this._player, "You're not holding anything to aim with.");
+                    Game.refresh();
                 }
-            */
-            } else if (inputData.key === 's')  {
+                return;
+            } else if (inputData.key === 's')  { // stat points
                 if (this._player.getStatPoints() > 0) {
                     this._player.useStatPoints();
                 }
@@ -342,8 +330,8 @@ Game.Screen.playScreen = {
             }
         } else if (inputType === 'keypress') {
             var keyChar = String.fromCharCode(inputData.charCode);
-            if (keyChar === '?') {
-                // Setup the look screen.
+            if (keyChar === '?') { // help
+                // Setup the help screen.
                 console.log("loading helpScreen");
                 this.setSubScreen(Game.Screen.helpScreen);
                 return;
@@ -359,8 +347,8 @@ Game.Screen.playScreen = {
                                              this._player.getX(), this._player.getY(), x, y);
 
             const sleep = (milliseconds) => {
-                return new Promise(resolve => setTimeout(resolve, milliseconds))
-            }
+                return new Promise(resolve => setTimeout(resolve, milliseconds));
+            };
 
             const moveLoop = async (path) => {
                 for (var i = 1; i < path.length; i++) {
@@ -374,7 +362,7 @@ Game.Screen.playScreen = {
                         return;
                     }
                 }
-            }
+            };
             if (path) {
                 moveLoop(path);
             }
@@ -396,7 +384,7 @@ Game.Screen.playScreen = {
             //console.log("z is changing!!!");
         }
         // Try to move to the new cell
-        this._player.tryMove(newX, newY, newZ, this._player.getMap());
+        this._player.tryMove(newX, newY, newZ);
         // Unlock the engine
         this._player.getMap().getEngine().unlock();
         if (newX == this._player.getX() &&
@@ -409,13 +397,13 @@ Game.Screen.playScreen = {
 
     moveTo: function(newX, newY, newZ) {
         // Try to move to the new cell
-        this._player.tryMove(newX, newY, newZ, this._player.getMap());
+        this._player.tryMove(newX, newY, newZ);
         // Unlock the engine
         this._player.getMap().getEngine().unlock();
     },
     setSubScreen: function(subScreen) {
-        if (subScreen && subScreen != Game.Screen.lookScreen 
-                      && subScreen != Game.Screen.aimScreen) {
+        if (subScreen && subScreen != Game.Screen.lookScreen &&
+                    subScreen != Game.Screen.aimScreen) {
             Game._display.setOptions({
                 width: Game._menuScreenWidth,
                 forceSquareRatio: false
@@ -456,17 +444,18 @@ Game.Screen.uiScreen = {
             }
         }
         var line = '%c{rgb(60,60,60)}';
-        for (var i = 0; i < Game.getUIWidth(); i++){
+        for (i = 0; i < Game.getUIWidth(); i++) {
             line += '=';
         }
         
         // Render player HP 
         var stats = '%c{}';
-        var playerStats = '%c{}HP: ' + player.getHp() + '/' + player.getMaxHp() 
-                + '   ATK: ' + player.getAttackValueWithoutDice() 
-                + '+d' + player.getAttackDice() 
-                + '   DEF: ' + player.getDefenseValue(); 
-            display.drawText(1, 1, playerStats);
+        var playerStats = '%c{}HP: ' + player.getHp() + '/' + 
+                player.getMaxHp() + 
+                '   ATK: ' + player.getAttackValueWithoutDice() + 
+                '+d' + player.getAttackDice() + 
+                '   DEF: ' + player.getDefenseValue(); 
+        display.drawText(1, 1, playerStats);
         if (subScreen) {
             //console.log("has subscreen");
             if (subScreen == Game.Screen.lookScreen) {
@@ -478,7 +467,7 @@ Game.Screen.uiScreen = {
         var barLength = 6;
         var statPoints = '';
         if (player.getStatPoints() > 0) {
-            statPoints = '[%c{rgb(50,255,50)}s%c{}]->stat pts: ' + player.getStatPoints();
+            statPoints = '%c{white}[%c{rgb(50,255,50)}s%c{white}]->stat pts: ' + player.getStatPoints();
         }
         var n = Math.round(player.getCurrentLevelProgress() * barLength - 1);
         var temp = levelBar.split('');
@@ -488,37 +477,38 @@ Game.Screen.uiScreen = {
             levelBar += '.';
         }
         var currentFloor = player.getZ() + 1; 
-        stats += 'FLOOR: ' + currentFloor + '   LVL: [%c{rgb(50,255,50)}' + player.getLevel() 
-            + '%c{}' + levelBar + (player.getLevel()+1) + ']   XP: ' + player.getExperience() + '   ';
+        stats += 'FLOOR: ' + currentFloor + '   LVL: [%c{rgb(50,255,50)}' + player.getLevel() + 
+            '%c{}' + levelBar + (player.getLevel()+1) + ']   XP: ' + player.getExperience() + '   ';
         //stats += vsprintf('FLOOR: %d   LVL: [%d' + levelBar + '%d]   XP: %d   ', 
          //   [player.getZ()+1,
         //     player.getLevel(), player.getLevel()+1, player.getExperience()]);
-        stats += statPoints;
+        //stats += statPoints;
         
         
         display.drawText(1, 2, stats);
+        display.drawText(Game.getUIWidth() - statPoints.length + 35, 1, statPoints);
     }
 };
 
 //#region ItemListScreen
 Game.Screen.ItemListScreen = function(template) {
     // Set up based on the template
-    this._caption = template['caption'];
-    this._okFunction = template['ok'];
-    this._selectOptionFunction = template['selectOption'];
+    this._caption = template.caption;
+    this._okFunction = template.ok;
+    this._selectOptionFunction = template.selectOption;
     // Whether a 'no item' option should appear.
-    this._hasNoItemOption = template['hasNoItemOption'];
+    this._hasNoItemOption = template.hasNoItemOption;
     //
-    this._hasOptionsMenu = template['hasOptionsMenu'];
+    this._hasOptionsMenu = template.hasOptionsMenu;
     this._optionsOpen = false;
     // By default, we use the identity function
-    this._isAcceptableFunction = template['isAcceptable'] || function(x) {
+    this._isAcceptableFunction = template.isAcceptable || function(x) {
         return x;
-    }
+    };
     // Whether the user can select items at all.
-    this._canSelectItem = template['canSelect'];
+    this._canSelectItem = template.canSelect;
     // Whether the user can select multiple items.
-    this._canSelectMultipleItems = template['canSelectMultipleItems'];
+    this._canSelectMultipleItems = template.canSelectMultipleItems;
 };
 Game.Screen.ItemListScreen.prototype.setup = function(player, items) {
     this._player = player;
@@ -566,11 +556,11 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
         display.drawText(0, 1, '0 - no item');
     }
     var row = 0;
-    
+    var item;
     for (var i = 0; i < this._items.length; i++) {
         // If we have an item, we want to render it.
         if (this._items[i] && this._items[i][0]) {
-            var item = this._items[i][0];
+            item = this._items[i][0];
             // Get the letter matching the item's index
             var letter = letters.substring(i, i + 1);
             // If we have selected an item, show a +, else show a dash between
@@ -580,17 +570,17 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
             // Check if the item is worn or wielded
             var prefix = '';
             if (item.hasMixin(Game.ItemMixins.Equippable)) {
-                prefix += item.getAttackDefense();
+                prefix += "%c{rgb(100,230,125)}" + item.getAttackDefense() + "%c{}" + ' ';
             }
             var suffix = '';
             // If euipped item is part of a stack and it's not the one being displayed,
             // still show that on of them is equipped
             for (var j = 0; j < this._items[i].length; j++) {
                 if (this._items[i][j] === this._player.getArmor()) {
-                    suffix += ' (equipped)';
+                    suffix += '(equipped)';
                     break;
                 } else if (this._items[i][j] === this._player.getWeapon()) {
-                    suffix += ' (equipped)';
+                    suffix += '(equipped)';
                     break;
                 }
             }
@@ -599,11 +589,17 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
             var numItems = '';
             if (this._items[i].length > 1) {
                 numItems += this._items[i].length;
-                display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' 
-                    + item.getRepresentation() + ' ' + numItems + prefix + ' ' + item.describe(true) + suffix);
+                display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' + 
+                    item.getRepresentation() + ' ' + '%c{darkgray}' + numItems + ' ' + 
+                    '%c{}' + prefix + 
+                    '%c{white}' + item.describe(true) + ' ' + 
+                    '%c{darkgray}' + suffix
+                );
             } else {
-                display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' 
-                    + item.getRepresentation() + prefix + ' ' + numItems + item.describe() + suffix);
+                display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' + 
+                item.getRepresentation() + ' ' + prefix + 
+                '%c{white}' + item.describe()  + ' ' + 
+                '%c{darkgray}' + suffix);
             }
             row++;
             
@@ -620,7 +616,7 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
             ];
             if (this._selectedIndices) {
                 var key = Object.keys(this._selectedIndices)[0];
-                var item = this._items[key][this._items[key].length - 1];
+                item = this._items[key][this._items[key].length - 1];
                 //.log(item.describe());
                 if (item && item.hasMixin('Equippable') && (item == this._player.getWeapon() || item == this._player.getArmor())) {
                     optionsDisplay = [
@@ -655,7 +651,7 @@ Game.Screen.ItemListScreen.prototype.executeSelectOptionFunction = function() {
 
     this._selectOptionFunction(selectedItems, this._selectedOption);
     this._selectedOption = null;
-}
+};
 
 Game.Screen.ItemListScreen.prototype.executeOkFunction = function() {
     // Gather the selected items.
@@ -732,26 +728,7 @@ Game.Screen.ItemListScreen.prototype.handleInput = function(inputType, inputData
     }
 };
 //#endregion
-/*
-Game.Screen.healScreen = new Game.Screen.ItemListScreen({
-    caption: 'Choose an item to heal with',
-    canSelect: true,
-    canSelectMultipleItems: false,
-    isAcceptable: function(item) {
-        return item && item.hasMixin('Healing');
-    },
-    ok: function(selectedItems) {
-        // Eat the item, removing it if there are no consumptions remaining.
-        var key = Object.keys(selectedItems)[0];
-        var item = selectedItems[key];
-        Game.sendMessage(this._player, "You consume %s.", [item.describeThe()]);
-        item.consume(this._player);
-        Game.refresh();
-        this._player.removeItem(key);
-        return true;
-    }
-});
-*/
+
 Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
     caption: 'Inventory',
     canSelect: true,
@@ -767,6 +744,9 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
         var key = Object.keys(selectedItems)[0];
         var item = selectedItems[key];
         // console.log("got to inventory selectOption function");
+        if (!item) {
+            return;
+        }
         if (option === 'a') {
             if (item && item.hasMixin('Healing')) {
                 Game.sendMessage(this._player, "You consume %s.", [item.describeThe()]);
@@ -856,6 +836,7 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
             
             //this.setup(this._player, this._player.getItems());
             this._optionsOpen = false;
+            this._selectedIndices = {};
             Game.refresh();
         }
     },
@@ -936,8 +917,9 @@ Game.Screen.helpScreen = {
         display.drawText(0, y++, 'Controls:');
         y++;
         display.drawText(0, y++, 'Arrow keys/numpad/mouse to move');
-        display.drawText(0, y++, '[Enter] to use stairs');
-        display.drawText(0, y++, '[f] to fire ranged weapons/scrolls');
+        display.drawText(0, y++, '[Enter] to use stairs/fire bows/activate scrolls');
+        display.drawText(0, y++, '[c] to cycle targets while aiming');
+        display.drawText(0, y++, '[f] to aim, press again to fire');
         display.drawText(0, y++, '[h] to quick-heal with an item');
         display.drawText(0, y++, '[i] to open inventory');
         display.drawText(0, y++, '[s] to use stat points');
@@ -958,13 +940,13 @@ Game.Screen.helpScreen = {
 Game.Screen.TargetBasedScreen = function(template) {
     template = template || {};
     // By default, our ok return does nothing and does not consume a turn.
-    this._isAcceptableFunction = template['okFunction'] || function(x, y) {
+    this._isAcceptableFunction = template.okFunction || function(x, y) {
         return false;
     };
     // The defaut caption function simply returns an empty string.
-    this._captionFunction = template['captionFunction'] || function(x, y) {
+    this._captionFunction = template.captionFunction || function(x, y) {
         return '';
-    }
+    };
 };
 
 Game.Screen.TargetBasedScreen.prototype.setup = function(player, startX, startY, item) {
@@ -987,6 +969,21 @@ Game.Screen.TargetBasedScreen.prototype.setup = function(player, startX, startY,
             visibleCells[x + "," + y] = true;
         });
     this._visibleCells = visibleCells;
+    // cache available targets
+    this._availableTargets = [];
+    var entities = this._player.getMap().getEntitiesWithinRadius(
+            this._player.getX(), 
+            this._player.getY(), 
+            this._player.getZ(), 
+            this._player.getSightRadius()
+    );
+    for (var i = 0; i < entities.length; i++) {
+        if (entities[i] && !entities[i].hasMixin('PlayerActor') && visibleCells[entities[i].getX() + "," + entities[i].getY()]){
+            this._availableTargets.push(entities[i]);
+        }
+    }
+    this._currentTargetIndex = this._availableTargets.length > 0 ? this._availableTargets.length - 1 : 0;
+    this.cycleCursorTarget();
 };
 
 Game.Screen.TargetBasedScreen.prototype.render = function(display) {
@@ -1009,7 +1006,7 @@ Game.Screen.TargetBasedScreen.prototype.render = function(display) {
                 tile = items[items.length - 1];
             }
             if (map.getEntityAt(points[i].x, points[i].y, this._player.getZ())) {
-                tile = map.getEntityAt(points[i].x, points[i].y, this._player.getZ())
+                tile = map.getEntityAt(points[i].x, points[i].y, this._player.getZ());
             }
             var foreground = tile.getForeground();
             display.drawText(points[i].x, points[i].y, '%c{' + foreground + '}%b{rgba(255,165,0,0.3)}' + tile.getChar());
@@ -1023,7 +1020,9 @@ Game.Screen.TargetBasedScreen.prototype.render = function(display) {
 Game.Screen.TargetBasedScreen.prototype.handleInput = function(inputType, inputData) {
     // Move the cursor
     if (inputType === 'keydown') {
-        if ([37, 100].includes(inputData.keyCode)) { // left
+        if ([67].includes(inputData.keyCode)) { // c to cycle cursor target
+            this.cycleCursorTarget();
+        } else if ([37, 100].includes(inputData.keyCode)) { // left
             this.moveCursor(-1, 0);
         } else if ([38, 104].includes(inputData.keyCode)) { // up
             this.moveCursor(0, -1);
@@ -1041,7 +1040,8 @@ Game.Screen.TargetBasedScreen.prototype.handleInput = function(inputType, inputD
             this.moveCursor(-1, 1);
         } else if (inputData.keyCode === VK_ESCAPE) {
             Game.Screen.playScreen.setSubScreen(undefined);
-        } else if (inputData.keyCode === VK_RETURN) {
+        } else if (inputData.keyCode === VK_RETURN || 
+            inputData.key === 'f') {
             this.executeOkFunction();
         }
     } else if (inputType === 'mousemove') {
@@ -1073,6 +1073,22 @@ Game.Screen.TargetBasedScreen.prototype.moveCursorTo = function(x, y) {
     if (this._visibleCells[newCursorX + "," + newCursorY]) {
         this._cursorX = newCursorX;
         this._cursorY = newCursorY;
+    }
+};
+
+Game.Screen.TargetBasedScreen.prototype.cycleCursorTarget = function() {
+    if (!this._availableTargets) {
+        return;
+    }
+    // increment index to next available target
+    this._currentTargetIndex++;
+    if (this._currentTargetIndex > this._availableTargets.length - 1) {
+        this._currentTargetIndex = 0;
+    }
+    // move cursor to newly selected target
+    var target = this._availableTargets[this._currentTargetIndex];
+    if (target) {
+        this.moveCursorTo(target.getX(), target.getY());
     }
 };
 
@@ -1164,8 +1180,9 @@ Game.Screen.aimScreen = new Game.Screen.TargetBasedScreen({
         if (this._item && this._item.hasMixin('Scroll')) {
             this._player.activateScroll(x, y, this._item);
             this._player.removeItemByObject(this._item);
+        } else {
+            this._player.rangedAttack(x, y);
         }
-        this._player.rangedAttack(x, y);
         return true;
     }
 });
@@ -1188,7 +1205,7 @@ Game.Screen.winScreen = {
     handleInput: function(inputType, inputData) {
         // Nothing to do here      
     }
-}
+};
 
 // Define our winning screen
 Game.Screen.loseScreen = {
@@ -1203,4 +1220,4 @@ Game.Screen.loseScreen = {
     handleInput: function(inputType, inputData) {
         // Nothing to do here      
     }
-}
+};

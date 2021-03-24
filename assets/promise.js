@@ -5,15 +5,15 @@
 var Promise = function() {
 	this._callbacks = {
 		ok: null
-	}
+	};
 	this._thenPromise = null;
-}
+};
 
 Promise.prototype.then = function(ok) {
 	this._callbacks.ok = ok;
 	this._thenPromise = new Promise();
 	return this._thenPromise;
-}
+};
 
 Promise.prototype.fulfill = function(value) {
 	if (!this._callbacks.ok) { return; }
@@ -26,4 +26,4 @@ Promise.prototype.fulfill = function(value) {
 	} else {
 		this._thenPromise.fulfill(result);
 	}
-}
+};

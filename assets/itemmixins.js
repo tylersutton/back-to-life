@@ -3,9 +3,9 @@ Game.ItemMixins = {};
 Game.ItemMixins.Healing = {
     name: 'Healing',
     init: function(template) {
-        this._healValue = template['healValue'] || 1;
-        this._isEmpty = template['isEmpty'] || false;
-        this._canQuickHeal = template['canQuickHeal'] || false;
+        this._healValue = template.healValue || 1;
+        this._isEmpty = template.isEmpty || false;
+        this._canQuickHeal = template.canQuickHeal || false;
     },
     consume: function(entity) {
         if (entity.hasMixin('Destructible')) {
@@ -43,16 +43,16 @@ Game.ItemMixins.Healing = {
             return [{key: 'healing', value: this._healValue}];
         }
     }
-}
+};
 
 Game.ItemMixins.Equippable = {
     name: 'Equippable',
     init: function(template) {
-        this._attackValue = template['attackValue'] || 0;
-        this._defenseValue = template['defenseValue'] || 0;
-        this._wieldable = template['wieldable'] || false;
-        this._wearable = template['wearable'] || false;
-        this._ranged = template['ranged'] || false;
+        this._attackValue = template.attackValue || 0;
+        this._defenseValue = template.defenseValue || 0;
+        this._wieldable = template.wieldable || false;
+        this._wearable = template.wearable || false;
+        this._ranged = template.ranged || false;
     },
     getAttackValue: function() {
         return this._attackValue;
@@ -74,7 +74,7 @@ Game.ItemMixins.Equippable = {
         var defense = this.getDefenseValue();
         var suffix = '';
         if (attack + defense > 0) {
-            suffix += ' +' + attack + ',+' + defense;
+            suffix += '+' + attack + ',+' + defense;
         } 
         return suffix;
     },
@@ -116,12 +116,12 @@ Game.ItemMixins.Scroll = {
             }
         }
     }
-}
+};
 
 Game.ItemMixins.Paralysis = {
     name: 'Paralysis',
     init: function(template) {
-        this._paralysisDuration = template['paralysisDuration'] || 5;
+        this._paralysisDuration = template.paralysisDuration || 5;
     },
     listeners: {
         'details': function() {
@@ -131,4 +131,4 @@ Game.ItemMixins.Paralysis = {
     getParalysisDuration: function() {
         return this._paralysisDuration;
     }
-}
+};

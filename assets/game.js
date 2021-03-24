@@ -12,7 +12,7 @@ var Game = {
 	_screenWidth: 30,
     _screenHeight: 20,
     _fontSize: 26,
-    _menuScreenWidth: 60,
+    _menuScreenWidth: 50,
     _uiWidth: 60,
     _uiHeight: 8,
     _uiFontSize: 21,
@@ -26,7 +26,7 @@ var Game = {
             bg: "rgb(20,20,20)",
             forceSquareRatio: true,
             fontFamily: "Consolas, monospace"
-        }
+        };
         this._display = new ROT.Display(options);
         this._display.getContainer().setAttribute('id', "game");
         
@@ -36,7 +36,7 @@ var Game = {
             fontSize: this._uiFontSize,
             bg: "rgb(20,20,20)",
             fontFamily: "Consolas, monospace"
-        }
+        };
         this._uiDisplay = new ROT.Display(uiOptions);
         this._uiDisplay.getContainer().setAttribute('id', 'ui');
         var titleOptions = {
@@ -45,7 +45,7 @@ var Game = {
             fontSize: 31,
             bg: "rgb(20,20,20)",
             fontFamily: "Consolas, monospace"
-        }
+        };
         this._titleDisplay = new ROT.Display(titleOptions);
         this._titleDisplay.getContainer().setAttribute('id', 'title');
         //document.querySelector("figure").appendChild(this._display.getContainer());
@@ -62,7 +62,7 @@ var Game = {
                     
 	            }
 	        });
-	    }
+	    };
 	    // Bind keyboard input events
 	    bindEventToScreen('keydown');
 	    bindEventToScreen('keyup');
@@ -107,12 +107,12 @@ var Game = {
 	    // Update our current screen, notify it we entered
 	    // and then render it
 	    this._currentScreen = screen;
-	    if (!this._currentScreen !== null) {
+	    if (this._currentScreen) {
 	        this._currentScreen.enter();
 	        this.refresh();
 	    }
 	}
-}
+};
 
 window.onload = function() {
     // Initialize the game
@@ -123,4 +123,4 @@ window.onload = function() {
     document.body.appendChild(Game.getUIDisplay().getContainer());
     // Load the start screen
     Game.switchScreen(Game.Screen.startScreen);
-}
+};

@@ -1,9 +1,9 @@
 Game.Glyph = function(properties) {
     // Instantiate properties to default if they weren't passed
     properties = properties || {};
-    this._char = properties['character'] || ' ';
-    this._foreground = properties['foreground'] || 'white';
-    this._background = properties['background'] || 'rgb(20,20,20)';
+    this._char = properties.character || ' ';
+    this._foreground = properties.foreground || 'white';
+    this._background = properties.background || 'rgb(20,20,20)';
     this._defaultForeground = this._foreground;
     this._defaultBackground = this._background;
 };

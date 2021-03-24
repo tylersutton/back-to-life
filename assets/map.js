@@ -30,7 +30,7 @@ Game.Map.prototype.getHeight = function() {
 };
 Game.Map.prototype.getDepth = function() {
     return this._depth;
-}
+};
 
 
 
@@ -60,13 +60,13 @@ Game.Map.prototype.getTile = function(x, y, z) {
 
 Game.Map.prototype.isEmptyFloor = function(x, y, z) {
     // Check if the tile is floor and also has no entity
-    return this.getTile(x, y, z) == Game.Tile.floorTile &&
+    return this.getTile(x, y, z).isWalkable() &&
            !this.getEntityAt(x, y, z);
 };
 
 Game.Map.prototype.getFov = function(depth) {
     return this._fov[depth];
-}
+};
 
 Game.Map.prototype._setupExploredArray = function() {
     for (var z = 0; z < this._depth; z++) {
@@ -102,24 +102,24 @@ Game.Map.prototype.getRandomFloorPosition = function(z) {
     do {
         x = Math.floor(Math.random() * this._width);
         y = Math.floor(Math.random() * this._height);
-    } while(this.getTile(x, y, z) != Game.Tile.floorTile || this.getEntityAt(x, y, z));
+    } while(!this.getTile(x, y, z).isWalkable() || this.getEntityAt(x, y, z));
     return {x: x, y: y, z: z};
-}
+};
 
 Game.Map.prototype.getEngine = function() {
     return this._engine;
-}
+};
 Game.Map.prototype.getEntities = function() {
     return this._entities;
-}
+};
 Game.Map.prototype.getEntityAt = function(x, y, z){
     // Get the entity based on position key 
     return this._entities[x + ',' + y + ',' + z];
-}
+};
 
 Game.Map.prototype.getPlayer = function() {
     return this._player;
-}
+};
 
 //Game.Map.prototype.getPlayerEntity = function() {
     //return this._entities[0];
@@ -145,7 +145,7 @@ Game.Map.prototype.addEntity = function(entity) {
     if (entity.hasMixin(Game.EntityMixins.PlayerActor)) {
         this._player = entity;
     }
-}
+};
 
 Game.Map.prototype.addEntityAtRandomPosition = function(entity, z) {
     var position = this.getRandomFloorPosition(z);
@@ -153,7 +153,7 @@ Game.Map.prototype.addEntityAtRandomPosition = function(entity, z) {
     entity.setY(position.y);
     entity.setZ(position.z);
     this.addEntity(entity);
-}
+};
 
 Game.Map.prototype.getEntitiesWithinRadius = function(centerX, centerY, z, radius) {
     results = [];
@@ -162,18 +162,38 @@ Game.Map.prototype.getEntitiesWithinRadius = function(centerX, centerY, z, radiu
     var rightX = centerX + radius;
     var topY = centerY - radius;
     var bottomY = centerY + radius;
+    var it = 0;
     // Iterate through our entities, adding any which are within the bounds
     for (var key in this._entities) {
+        it++;
         var entity = this._entities[key];
-        if (entity.getX() >= leftX &&
+        /*
+        if (entity &&
+            (!typeof(entity) === 'function') &&  
+            entity.getX() >= leftX &&
             entity.getX() <= rightX && 
             entity.getY() >= topY &&
             entity.getY() <= bottomY &&
             entity.getZ() == z) 
-        {
+        */
+        if (!entity) {
+            //console.log("entity is undefined");
+        } else if (typeof(entity) === 'function') {
+            //console.log("entity is a function");
+        } else if (entity.getX() < leftX ||
+                    entity.getX() > rightX ||
+                    entity.getY() < topY ||
+                    entity.getY() > bottomY ||
+                    entity.getZ() !== z) {
+            //console.log("entity is not within radius");
+        }
+        else {
             results.push(entity);
         }
     }
+    //console.log("number of entities tested: " + it);
+    //var count = results ? results.length : 0;
+    //console.log("num of entities within radius: " + results.length);
     return results;
 };
 

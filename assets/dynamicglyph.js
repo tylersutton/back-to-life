@@ -3,8 +3,8 @@ Game.DynamicGlyph = function(properties) {
     // Call the glyph's construtor with our set of properties
     Game.Glyph.call(this, properties);
     // Instantiate any properties from the passed object
-    this._name = properties['name'] || '';
-    this._pluralName = properties['pluralName'] || this._name + 's';
+    this._name = properties.name || '';
+    this._pluralName = properties.pluralName || this._name + 's';
     // Create an object which will keep track what mixins we have
     // attached to this entity based on the name property
     this._attachedMixins = {};
@@ -13,14 +13,14 @@ Game.DynamicGlyph = function(properties) {
     // Set up an object for listeners
     this._listeners = {};
     // Setup the object's mixins
-    var mixins = properties['mixins'] || [];
+    var mixins = properties.mixins || [];
     for (var i = 0; i < mixins.length; i++) {
         // Copy over all properties from each mixin as long
         // as it's not the name, init, or listeners property. We
         // also make sure not to override a property that
         // already exists on the entity.
         for (var key in mixins[i]) {
-            if (key != 'init' && key != 'name' && key != 'listeners' 
+            if (key != 'init' && key != 'name' && key != 'listeners'
                 && !this.hasOwnProperty(key)) {
                 this[key] = mixins[i][key];
             }
