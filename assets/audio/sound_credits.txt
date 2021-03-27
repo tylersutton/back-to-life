@@ -1,1 +1,6 @@
-[filename] -> Fireball Cast 1 - https://freesound.org/people/LiamG_SFX/sounds/334234/
+[filename]      -> Fireball Cast 1          - https://freesound.org/people/LiamG_SFX/sounds/334234/
+arrow.mp3       -> FX_bow&arrow.wav         - https://freesound.org/people/Lydmakeren/sounds/511490/
+scroll.mp3      -> Explosion 6b             - https://freesound.org/people/LiamG_SFX/sounds/322503/
+levelup.mp3     -> 62055_juskiddink_glass5  - https://freesound.org/people/juskiddink/sounds/62055/
+potion{0-N}.mp3 -> Gulping Liquid           - https://freesound.org/people/Sheyvan/sounds/471079/
+arrow{0-N}.mp3  -> Whoosh_3.wav             - https://freesound.org/people/speedygonzo/sounds/257654/

@@ -9,13 +9,13 @@ var Game = {
     _uiDisplay: null,
     _titleDisplay: null,
 	_currentScreen: null,
-	_screenWidth: 30,
+	_screenWidth: 56,
     _screenHeight: 20,
-    _fontSize: 26,
+    _fontSize: 40,
     _menuScreenWidth: 50,
-    _uiWidth: 60,
-    _uiHeight: 8,
-    _uiFontSize: 21,
+    _uiWidth: 100,
+    _uiHeight: 9,
+    _uiFontSize: 24,
 
     init: function() {
 	    // Any necessary initialization will go here.
@@ -23,8 +23,9 @@ var Game = {
             width: this._screenWidth,
             height: this._screenHeight,
             fontSize: this._fontSize,
-            bg: "rgb(20,20,20)",
-            forceSquareRatio: true,
+            bg: "rgb(0,0,0)",
+            spacing: 1.2,
+            //forceSquareRatio: true,
             fontFamily: "Consolas, monospace"
         };
         this._display = new ROT.Display(options);
@@ -69,6 +70,9 @@ var Game = {
 	    bindEventToScreen('keypress');
         bindEventToScreen('click');
         bindEventToScreen('mousemove');
+
+        // setup game audio
+        this.audio = new Game.Audio();
 	},
     refresh: function() {
         // Clear the screen

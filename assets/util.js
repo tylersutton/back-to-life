@@ -76,11 +76,12 @@ Game.findShortestPath = function(map3d, z, x1, y1, x2, y2, orthogonalOnly) {
     var pred = [];
     var width = map.length;
     var height = map[0].length;
-    for (var i = 0; i < width; i++) {
+    var i, j;
+    for (i = 0; i < width; i++) {
         visited.push([]);
         dist.push([]);
         pred.push([]);
-        for (var j = 0; j < height; j++) {
+        for (j = 0; j < height; j++) {
             visited[i][j] = false;
             dist[i][j] = 1000000;
             pred[i][j] = {x: -1, y: -1};
@@ -96,9 +97,8 @@ Game.findShortestPath = function(map3d, z, x1, y1, x2, y2, orthogonalOnly) {
     while (!q.isEmpty()) {
         q.sort(dist);
         var v = q.dequeue();
-
-        for (var i = v.x - 1; i <= v.x + 1; i++) {
-            for (var j = v.y - 1; j <= v.y + 1; j++) {
+        for (i = v.x - 1; i <= v.x + 1; i++) {
+            for (j = v.y - 1; j <= v.y + 1; j++) {
                 var hasEntity = false;
                 if (gameMap && gameMap.getEntityAt(i, j, x)) {
                     hasEntity = true;
@@ -173,6 +173,19 @@ Game.shuffle = function(array) {
         [array[i], array[j]] = [array[j], array[i]];
     }
 };
+
+Game.scaleRGB = function(rgbValue, scale) {
+    var min = 0;
+    var max = 255;
+    var colors = ROT.Color.fromString(rgbValue);
+    var defaultColors = ROT.Color.fromString(rgbValue);
+    for (var i = 0; i < 3; i++) {
+        colors[i] = Math.floor((defaultColors[i] - min) * scale + min);
+        ROT.Util.clamp(colors[i], min, max);
+    }
+    return ROT.Color.toRGB(colors);
+};
+
 
 function Queue() {
     this.elements = [];

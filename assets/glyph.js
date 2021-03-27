@@ -3,7 +3,7 @@ Game.Glyph = function(properties) {
     properties = properties || {};
     this._char = properties.character || ' ';
     this._foreground = properties.foreground || 'white';
-    this._background = properties.background || 'rgb(20,20,20)';
+    this._background = properties.background || 'transparent';
     this._defaultForeground = this._foreground;
     this._defaultBackground = this._background;
 };

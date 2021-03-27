@@ -1,3 +1,5 @@
+const groundTileBackground = 'rgb(25,25,25)';
+
 Game.Tile = function(properties) {
     properties = properties || {};
     // Call the Glyph constructor with our properties
@@ -24,6 +26,10 @@ Game.Tile.prototype.isBlockingLight = function() {
     return this._blocksLight;
 };
 
+Game.Tile.prototype.isDoor = function() {
+    return this == Game.Tile.doorTile;
+};
+
 Game.Tile.prototype.isStairs = function() {
     return (this.isStairsUp() || this.isStairsDown());
 };
@@ -43,27 +49,31 @@ Game.Tile.prototype.isHoleToCavern = function() {
 Game.Tile.nullTile = new Game.Tile({});
 
 Game.Tile.floorTile = new Game.Tile({
-    character: '.',
+    character: '·',
     walkable: true,
     foreground: 'rgb(120,120,120)',
+    background: groundTileBackground,
     blocksLight: false,
     description: 'a stone floor'
 });
 Game.Tile.wallTile = new Game.Tile({
     character: '#',
-    foreground: 'rgb(120,120,120)',
+    foreground: 'rgb(30, 30, 30)',
+    background: 'rgb(112, 68, 68)',
     description: 'a stone wall'
 });
 Game.Tile.doorTile = new Game.Tile({
     character: '+',
     walkable: true,
     foreground: 'rgb(191,137,75)',
+    background: 'rgb(122, 45, 12)',
     blocksLight: true,
     description: 'a wooden door'
 });
 Game.Tile.stairsUpTile = new Game.Tile({
     character: '<',
     foreground: 'white',
+    background: groundTileBackground,
     walkable: true,
     blocksLight: false,
     description: 'a stone staircase leading upwards'
@@ -71,6 +81,7 @@ Game.Tile.stairsUpTile = new Game.Tile({
 Game.Tile.stairsDownTile = new Game.Tile({
     character: '>',
     foreground: 'white',
+    background: groundTileBackground,
     walkable: true,
     blocksLight: false,
     description: 'a stone staircase leading downwards'
@@ -79,6 +90,7 @@ Game.Tile.stairsDownTile = new Game.Tile({
 Game.Tile.holeToCavernTile = new Game.Tile({
     character: 'O',
     foreground: 'white',
+    background: groundTileBackground,
     walkable: true,
     blocksLight: false,
     description: 'a great dark hole in the ground'
@@ -86,6 +98,7 @@ Game.Tile.holeToCavernTile = new Game.Tile({
 Game.Tile.waterTile = new Game.Tile({
     character: '~',
     foreground: 'blue',
+    background: '(20,20,80)',
     walkable: false,
     blocksLight: false,
     description: 'murky blue water'

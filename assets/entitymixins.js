@@ -273,6 +273,7 @@ Game.EntityMixins.Attacker = {
                 this.getMap().getEngine().lock();
                 var that = this;
                 //Game.sendMessage(this, 'You activate %s.', [scroll.describeThe()]);
+                Game.audio.play("scroll");
                 new Game.Arrow({path: path}).go().then(function() {
                     if (target && that != target) {
                         if (target.hasMixin('Mover') && target.isParalyzable()) {
@@ -321,6 +322,8 @@ Game.EntityMixins.Attacker = {
             this.getMap().getEngine().lock();
             var that = this;
             Game.sendMessage(this, 'You fire %s.', [this.getWeapon().describeThe()]);
+            Game.audio.play("arrow");
+            
             new Game.Arrow({path: path}).go().then(function() {
                 if (target && that != target) {
                     that.attack(target);
@@ -909,6 +912,7 @@ Game.EntityMixins.PlayerStatGainer = {
     listeners: {
         onGainLevel: function() {
             // does nothing...
+            Game.audio.play("levelup");
         },
         onUseStats: function() {
             // Setup the gain stat screen and show it.

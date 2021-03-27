@@ -149,8 +149,8 @@ Game.MapGen.prototype.makeCorridor = function(z, room, doors) {
             return;
         }
             this.fillRoom(z, room, doors);
-        map[doors[i].x][doors[i].y] = Game.Tile.doorTile;
-        map[doors[i+1].x][doors[i+1].y] = Game.Tile.doorTile;
+        map[doors[i].x][doors[i].y] = Game.Tile.floorTile;
+        map[doors[i+1].x][doors[i+1].y] = Game.Tile.floorTile;
         for (var j = 1; j < path.length - 1; j++) {
             //console.log("next step: (" + path[j].x + ", " + path[j].y);
             map[path[j].x][path[j].y] = Game.Tile.floorTile;
@@ -168,7 +168,7 @@ Game.MapGen.prototype.getDoors = function(z, room) {
     for (x = left; x < left + w; x++) {
         for (var y = top; y < top + h; y++) {
             if ((x == left || x == left + w - 1 || y == top || y == top + h - 1) && 
-                    map[x][y] == Game.Tile.doorTile) {
+                    map[x][y].isWalkable()) {
                 doors.push({x: x, y: y});
             }
         }
@@ -236,6 +236,8 @@ Game.MapGen.prototype.addDoors = function (z, maxDist) {
 // dir = 0 if vertical, 1 if horizontal
 Game.MapGen.prototype.bsp = function(left, top, w, h, z) {
     var map = this._tiles[z];
+    var mid;
+    var door;
     var vertical = w > h ? true : false;
     // 50% chance of ending recursion early if room is small enough
     if ((w < this._maxRoomWidth) && (h < this._maxRoomHeight) && ((Math.random() * 100) > 50)) {
@@ -252,7 +254,7 @@ Game.MapGen.prototype.bsp = function(left, top, w, h, z) {
             this._rooms[z].push({left: left-1, top: top-1, w: w+2, h: h+2});
             return;
         }
-        var mid = Math.floor(Math.random() * (maxX - minX) + minX);
+        mid = Math.floor(Math.random() * (maxX - minX) + minX);
         // add wall on midpoint of room, splitting into two
         for (i = top; i < top+h; i++) {
             map[mid][i] = Game.Tile.wallTile;
@@ -261,7 +263,7 @@ Game.MapGen.prototype.bsp = function(left, top, w, h, z) {
         // add a door in newly created wall
         // needs to be within minRoomHeight of the edge 
         // so future walls don't cover the door
-        var door = Math.floor(Math.random() * this._minRoomHeight + top);
+        door = Math.floor(Math.random() * this._minRoomHeight + top);
         map[mid][door] = Game.Tile.doorTile;
 
         // recursively split new rooms left and right of midpoint
@@ -277,7 +279,7 @@ Game.MapGen.prototype.bsp = function(left, top, w, h, z) {
             this._rooms[z].push({left: left-1, top: top-1, w: w+2, h: h+2});
             return;
         }
-        var mid = Math.floor(Math.random() * (maxY - minY) + minY);
+        mid = Math.floor(Math.random() * (maxY - minY) + minY);
         // add wall on midpoint of room, splitting into two
         for (i = left; i < left+w; i++) {
             map[i][mid] = Game.Tile.wallTile;
@@ -286,7 +288,7 @@ Game.MapGen.prototype.bsp = function(left, top, w, h, z) {
         // add a door in newly created wall
         // needs to be within minRoomHeight of the edge 
         // so future walls don't cover the door
-        var door = Math.floor(Math.random() * this._minRoomWidth + left);
+        door = Math.floor(Math.random() * this._minRoomWidth + left);
         map[door][mid] = Game.Tile.doorTile;
 
         // recursively split new rooms above and below midpoint

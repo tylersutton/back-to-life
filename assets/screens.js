@@ -13,10 +13,12 @@ Game.Screen.startScreen = {
     _isLoading: null,
     enter: function() {    
         this._isLoading = false;
+        /*
         Game._display.setOptions({
             width: Game._menuScreenWidth,
             forceSquareRatio: false
         });
+        */
         console.log("Entered start screen."); 
     },
     exit: function() { console.log("Exited start screen."); },
@@ -38,51 +40,51 @@ Game.Screen.startScreen = {
         var descLength2 = 19;
         var prompt = "Press [Enter] to start!";
         var titleHeight = 0;
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength / 2)),
                         titleHeight++, 
                         "%c{orange}" + description1);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength / 2)),
                         titleHeight++, 
                         "%c{orange}" + description2);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength / 2)),
                         titleHeight++, 
                         "%c{orange}" + description3);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength / 2)),
                         titleHeight++, 
                         "%c{orange}" + description4);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength / 2)),
                         titleHeight++, 
                         "%c{orange}" + description5);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength / 2)),
                         titleHeight++, 
                         "%c{orange}" + description6);
         titleHeight++;
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength2 / 2)),
                         titleHeight++, 
                         "%c{orange}" + description7);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength2 / 2)),
                         titleHeight++, 
                         "%c{orange}" + description8);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength2 / 2)),
                         titleHeight++, 
                         "%c{orange}" + description9);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength2 / 2)),
                         titleHeight++, 
                         "%c{orange}" + description10);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength2 / 2)),
                         titleHeight++, 
                         "%c{orange}" + description11);
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (descLength2 / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (descLength2 / 2)),
                         titleHeight++, 
                         "%c{orange}" + description12);
         titleHeight += 2;
         var subtitle = "%c{darkorange}A Roguelike %c{gray}by Tyler Sutton";
 
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - ((subtitle.length - 22) / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - ((subtitle.length - 22) / 2)),
                         titleHeight++, 
                         "" + subtitle);
         titleHeight += 2;
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (prompt.length / 2)),
+        display.drawText(Math.floor((Game._screenWidth / 2) - (prompt.length / 2)),
                         titleHeight++, 
                         "%c{white}" + prompt);
     },
@@ -112,7 +114,7 @@ Game.Screen.playScreen = {
     enter: function() {  
         Game._display.setOptions({
             width: Game._screenWidth,
-            forceSquareRatio: true
+            //forceSquareRatio: true
         });
     
         //var bodyRect = document.body.getBoundingClientRect();
@@ -125,8 +127,8 @@ Game.Screen.playScreen = {
             width: Game.getScreenWidth(),
             height: Game.getScreenHeight(),
             depth: 26,
-            minRoomWidth: 3,
-            maxRoomWidth: 6
+            minRoomWidth: 4,
+            maxRoomWidth: 8
         };
         // generate maze of rooms with MapGen
         this._generator = new Game.MapGen(genProps);
@@ -138,6 +140,19 @@ Game.Screen.playScreen = {
         // Create our map from the tiles
         var map = new Game.Map.Dungeon(tiles, this._player);
         
+        // create random shadows for each tile in map
+        this._shadows = [];
+        for (let z = 0; z < map.getDepth(); z++) {
+            this._shadows.push([]);
+            for (let x = 0; x < map.getWidth(); x++) {
+                this._shadows[z].push([]);
+                for (let y = 0; y < map.getHeight(); y++) {
+                    var scaleFactor = (Math.random() * 0.4) + 0.6;
+                    this._shadows[z][x].push(scaleFactor);
+                }
+            }
+        }
+
         this._effects = {};
 
         // reset gameEnded if game was restarted
@@ -149,17 +164,16 @@ Game.Screen.playScreen = {
     },
     exit: function() { console.log("Exited play screen."); },
     render: function(display, uiDisplay) {
-        // Render subscreen if there is one
-        if (this._subScreen) {
-            this._subScreen.render(display, uiDisplay);
-            Game.Screen.uiScreen.render(this._player, uiDisplay, this._subScreen);
-            return;
-        }
         // Render map tiles
         this.renderTiles(display, this._subScreen);
 
+        // Render active effects
         this.renderEffects(display);
 
+        // Render subscreen if there is one
+        if (this._subScreen) {
+            this._subScreen.render(display, uiDisplay);
+        }
         // Get the messages in the player's queue and render them
         Game.Screen.uiScreen.render(this._player, uiDisplay);
     },
@@ -197,34 +211,49 @@ Game.Screen.playScreen = {
                     // The foreground color becomes dark gray if the tile has been
                     // explored but is not visible
                     var foreground = visibleCells[x + ',' + y] ? tile.getForeground() :
-                            tile.isStairs() ? 'rgb(100,100,100)' : 'rgb(50,50,50)';
+                        Game.scaleRGB(tile.getForeground(), 0.4);
+                    var background = visibleCells[x + ',' + y] ? tile.getBackground() :
+                        Game.scaleRGB(tile.getBackground(), 0.4);
+                    if (this._shadows[currentDepth][x][y] && !tile.isDoor()) {
+                        background = Game.scaleRGB(background, this._shadows[currentDepth][x][y]);
+                        foreground = Game.scaleRGB(foreground, this._shadows[currentDepth][x][y]);
+                    }
                     if (GOD_MODE || visibleCells[x + ',' + y]) {
                         var items = map.getItemsAt(x, y, currentDepth);
                         if (items) {
                             tile = items[items.length - 1];
+                            foreground = tile.getForeground();
                         }
                         if (map.getEntityAt(x, y, currentDepth)) {
                             tile = map.getEntityAt(x, y, currentDepth);
+                            foreground = tile.getForeground();
                         }
-                        foreground = tile.getForeground();
                     }
+                    
                     display.draw(
                         x,
                         y,
                         tile.getChar(), 
                         foreground, 
-                        tile.getBackground());
+                        background
+                    );
                 }
             }
         }
     },
     renderEffects: function(display) {
+        var map = this._player.getMap();
         var screenWidth = Game.getScreenWidth();
         var screenHeight = Game.getScreenHeight();
         for (var x = 0; x < screenWidth; x++) {
             for (var y = 0; y < screenHeight; y++) {
                 if (this._effects[x+','+y]) {
-                    display.draw(x, y, this._effects[x+','+y]);
+                    var tile = map.getTile(x, y, this._player.getZ());
+                    var background = Game.scaleRGB(
+                        tile.getBackground(), 
+                        this._shadows[this._player.getZ()][x][y]
+                    );
+                    display.draw(x, y, this._effects[x+','+y], 'white', background);
                 }
             }
         }
@@ -405,14 +434,14 @@ Game.Screen.playScreen = {
         if (subScreen && subScreen != Game.Screen.lookScreen &&
                     subScreen != Game.Screen.aimScreen) {
             Game._display.setOptions({
-                width: Game._menuScreenWidth,
+                //width: Game._menuScreenWidth,
                 forceSquareRatio: false
             });
         }
         else {
             Game._display.setOptions({
                 width: Game._screenWidth,
-                forceSquareRatio: true
+                //forceSquareRatio: true
             });
         }
         this._subScreen = subScreen;
@@ -433,8 +462,9 @@ Game.Screen.uiScreen = {
     render: function(player, display, subScreen) {
         var messages = player.getMessages();
         var messageY = 3;
+        var i;
         if (messages) {
-            for (var i = 0; i < messages.length; i++) {
+            for (i = 0; i < messages.length; i++) {
                 // Draw each message, adding the number of lines
                 messageY += display.drawText(
                     1, 
@@ -473,7 +503,7 @@ Game.Screen.uiScreen = {
         var temp = levelBar.split('');
         temp.splice(0, barLength - n - 1);
         levelBar = temp.join('');
-        for (var i = 0; i < barLength - n; i++) {
+        for (i = 0; i < barLength - n; i++) {
             levelBar += '.';
         }
         var currentFloor = player.getZ() + 1; 
@@ -550,10 +580,43 @@ Game.Screen.ItemListScreen.prototype.setup = function(player, items) {
 Game.Screen.ItemListScreen.prototype.render = function(display) {
     var letters = 'abcdefghijklmnopqrstuvwxyz';
     // Render the caption in the top row
-    display.drawText(Math.floor((Game._menuScreenWidth / 2) - (this._caption.length / 2)), 0, this._caption);
+    display.drawText(Math.floor((Game._screenWidth / 2) - (this._caption.length / 2)), top, this._caption);
     // Render the no item row if enabled
+    var width = Math.floor(2 * Game._screenWidth / 3);
+    var height = this._items.length + 2;
     if (this._hasNoItemOption) {
-        display.drawText(0, 1, '0 - no item');
+        height += 3;
+    }
+    var left = Math.floor((Game._screenWidth / 2) - (width / 2));
+    var top = Math.floor((Game._screenHeight / 2) - (height / 2));
+    for (let i = left; i < left + width; i++) {
+        for (let j = top; j < top + height; j++) {
+            if (i == left && j == top) {
+                display.draw(i, j, '┌');
+            } else if (i == left + width - 1 && j == top) {
+                display.draw(i, j, '┐');
+            } else if (i == left && j == top + height - 1) {
+                display.draw(i, j, '└');
+            } else if (i == left + width - 1 && j == top + height - 1) {
+                display.draw(i, j, '┘');
+            }
+            else if (j == top || j == top + height - 1) {
+                display.draw(i, j, '─');
+            }   else if (i == left || i == left + width - 1) {
+                display.draw(i, j, '│');
+            } else {
+                display.draw(i, j, ' ');
+            }
+            
+        }
+    }
+    var x = left + 1;
+    var y = top;
+    display.drawText(Math.floor((Game._screenWidth / 2) - (this._caption.length / 2)), y, this._caption);
+    y ++;
+    if (this._hasNoItemOption) {
+        display.drawText(x, y, '0 - no item');
+        y++;
     }
     var row = 0;
     var item;
@@ -589,30 +652,30 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
             var numItems = '';
             if (this._items[i].length > 1) {
                 numItems += this._items[i].length;
-                display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' + 
+                display.drawText(x, y, letter + ' ' + selectionState + ' ' + 
                     item.getRepresentation() + ' ' + '%c{darkgray}' + numItems + ' ' + 
                     '%c{}' + prefix + 
                     '%c{white}' + item.describe(true) + ' ' + 
                     '%c{darkgray}' + suffix
                 );
             } else {
-                display.drawText(0, 2 + row, letter + ' ' + selectionState + ' ' + 
+                display.drawText(x, y, letter + ' ' + selectionState + ' ' + 
                 item.getRepresentation() + ' ' + prefix + 
                 '%c{white}' + item.describe()  + ' ' + 
                 '%c{darkgray}' + suffix);
             }
-            row++;
+            y++;
             
         }
         
         if (this._hasOptionsMenu && this._optionsOpen) {
             //console.log("tryna print options");
             var optionsDisplay = [
-                '---------- Options ----------',
-                '|  apply [a]     equip [e]  |',
-                '|  examine [x]   drop [d]   |',
-                '|  cancel [esc]             |',
-                '-----------------------------'
+                '┌───────── Options ─────────┐',
+                '│  apply [a]     equip [e]  │',
+                '│  examine [x]   drop [d]   │',
+                '│  cancel [esc]             │',
+                '└───────────────────────────┘'
             ];
             if (this._selectedIndices) {
                 var key = Object.keys(this._selectedIndices)[0];
@@ -620,18 +683,18 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
                 //.log(item.describe());
                 if (item && item.hasMixin('Equippable') && (item == this._player.getWeapon() || item == this._player.getArmor())) {
                     optionsDisplay = [
-                        '----------- Options -----------',
-                        '|  apply [a]     unequip [e]  |',
-                        '|  examine [x]   drop [d]     |',
-                        '|  cancel [esc]               |',
-                        '-------------------------------'
+                        '┌────────── Options ──────────┐',
+                        '│  apply [a]     unequip [e]  │',
+                        '│  examine [x]   drop [d]     │',
+                        '│  cancel [esc]               │',
+                        '└─────────────────────────────┘'
                     ];
                 }
             }
             var optionsWidth = optionsDisplay[0].length;
             var optionsHeight = optionsDisplay.length;
-            var optionsX = Math.floor((Game._menuScreenWidth / 2) - (optionsWidth / 2));
-            var optionsY = Math.floor((Game._screenHeight / 2) - (optionsHeight / 2));
+            var optionsX = Math.floor((Game._screenWidth / 2) - (optionsWidth / 2));
+            var optionsY = top + 1;
             //display.drawText(optionsX, optionsY++, topBar);
             display.drawText(optionsX, optionsY, optionsDisplay[0]);
             display.drawText(optionsX, optionsY+1, optionsDisplay[1]);
@@ -868,17 +931,56 @@ Game.Screen.gainStatScreen = {
     render: function(display) {
         var letters = 'abcdefghijklmnopqrstuvwxyz';
         var caption = 'Choose a stat to increase:';
-        display.drawText(Math.floor((Game._menuScreenWidth / 2) - (caption.length / 2)), 0, caption);
+        
+        var width = Math.floor((2 * Game._screenWidth / 3))+1;
+        var height = this._options.length + 4;
+        var left = Math.floor((Game._screenWidth / 2) - (width / 2));
+        var top = Math.floor((Game._screenHeight / 2) - (height / 2));
+        for (let i = left; i < left + width; i++) {
+            for (let j = top; j < top + height; j++) {
+                if (i == left && j == top) {
+                    display.draw(i, j, '┌');
+                } else if (i == left + width - 1 && j == top) {
+                    display.draw(i, j, '┐');
+                } else if (i == left && j == top + height - 1) {
+                    display.draw(i, j, '└');
+                } else if (i == left + width - 1 && j == top + height - 1) {
+                    display.draw(i, j, '┘');
+                }
+                else if (j == top || j == top + height - 1) {
+                    display.draw(i, j, '─');
+                }   else if (i == left || i == left + width - 1) {
+                    display.draw(i, j, '│');
+                } else {
+                    display.draw(i, j, ' ');
+                }
+                
+            }
+        }
+
+        display.drawText(Math.floor((Game._screenWidth / 2) - (caption.length / 2)), top, caption);
+
+        var x = left + 2;
+        var y = top + 2;
 
         // Iterate through each of our options
         for (var i = 0; i < this._options.length; i++) {
-            display.drawText(0, 2 + i, 
-                letters.substring(i, i + 1) + ' - ' + this._options[i][0]);
+            display.drawText(
+                x, 
+                y++,
+                letters.substring(i, i + 1) + ' - ' + this._options[i][0]
+            );
         }
 
+        y += 2;
+        var remainingPoints = "Remaining points: " + this._entity.getStatPoints();
+
         // Render remaining stat points
-        display.drawText(0, 4 + this._options.length,
-            "Remaining points: " + this._entity.getStatPoints());   
+        display.drawText(
+            Math.floor((Game._screenWidth / 2) - (remainingPoints.length / 2)), 
+            top + height - 1,
+            remainingPoints
+        );   
     },
     handleInput: function(inputType, inputData) {
         if (inputType === 'keydown') {

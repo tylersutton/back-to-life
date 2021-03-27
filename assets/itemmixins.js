@@ -12,6 +12,7 @@ Game.ItemMixins.Healing = {
             if (!this._isEmpty) {
                 entity.heal(this._healValue);
                 //this._isEmpty = true;
+                Game.audio.play("potion");
             }
             else {
                 Game.sendMessage(entity, "It has no effect.");
