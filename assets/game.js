@@ -35,7 +35,7 @@ var Game = {
             width: this._uiWidth,
             height: this._uiHeight,
             fontSize: this._uiFontSize,
-            bg: "rgb(20,20,20)",
+            bg: "rgb(0,0,0)",
             fontFamily: "Consolas, monospace"
         };
         this._uiDisplay = new ROT.Display(uiOptions);
@@ -44,7 +44,7 @@ var Game = {
             width: 40,
             height: 1,
             fontSize: 31,
-            bg: "rgb(20,20,20)",
+            bg: "rgb(0,0,0)",
             fontFamily: "Consolas, monospace"
         };
         this._titleDisplay = new ROT.Display(titleOptions);

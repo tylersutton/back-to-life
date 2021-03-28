@@ -22,6 +22,10 @@ Game.Tile.prototype.isWalkable = function() {
     return this._walkable;
 };
 
+Game.Tile.prototype.isSpawnable = function() {
+    return this.isWalkable() && !this.isDoor();
+};
+
 Game.Tile.prototype.isBlockingLight = function() {
     return this._blocksLight;
 };

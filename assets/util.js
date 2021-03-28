@@ -186,6 +186,12 @@ Game.scaleRGB = function(rgbValue, scale) {
     return ROT.Color.toRGB(colors);
 };
 
+Game.rgbToGrayscale = function(rgbValue) {
+    var rgb = ROT.Color.fromString(rgbValue);
+    var color = Math.floor((rgb[0] + rgb[1] + rgb[2]) / 3);
+    var grayscale = [color, color, color];
+    return ROT.Color.toRGB(grayscale);
+};
 
 function Queue() {
     this.elements = [];

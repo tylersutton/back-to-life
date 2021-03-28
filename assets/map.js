@@ -60,7 +60,7 @@ Game.Map.prototype.getTile = function(x, y, z) {
 
 Game.Map.prototype.isEmptyFloor = function(x, y, z) {
     // Check if the tile is floor and also has no entity
-    return this.getTile(x, y, z).isWalkable() &&
+    return this.getTile(x, y, z).isSpawnable() &&
            !this.getEntityAt(x, y, z);
 };
 
@@ -102,7 +102,7 @@ Game.Map.prototype.getRandomFloorPosition = function(z) {
     do {
         x = Math.floor(Math.random() * this._width);
         y = Math.floor(Math.random() * this._height);
-    } while(!this.getTile(x, y, z).isWalkable() || this.getEntityAt(x, y, z));
+    } while(!this.isEmptyFloor(x, y, z));
     return {x: x, y: y, z: z};
 };
 

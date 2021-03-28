@@ -229,7 +229,10 @@ Game.Screen.playScreen = {
                             foreground = tile.getForeground();
                         }
                     }
-                    
+                    if (this._gameEnded) {
+                        foreground = Game.rgbToGrayscale(foreground);
+                        background = Game.rgbToGrayscale(background);
+                    }
                     display.draw(
                         x,
                         y,
