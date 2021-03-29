@@ -127,7 +127,7 @@ Game.MapGen.prototype.makeCorridors = function(z, maxCorridors) {
     Game.shuffle(rooms);
     maxCorridors = maxCorridors || Math.floor(rooms.length / 3);
     //rooms.sort(rooms);
-    console.log("number of rooms: " + rooms.length);
+    //console.log("number of rooms: " + rooms.length);
     for (var i = 0; i < rooms.length; i++) {
         var room = rooms[i];
         var doors = this.getDoors(z, room);
@@ -156,11 +156,11 @@ Game.MapGen.prototype.makeCorridor = function(z, room, doors) {
             true
         );
         if (!path) {
-            console.log('no path to make corridor!');
+            //console.log('no path to make corridor!');
             return;
         } else {
             count++;
-            console.log("pushing path " + count);
+            //console.log("pushing path " + count);
             paths.push(path);
         }
     }

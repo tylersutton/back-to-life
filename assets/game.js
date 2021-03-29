@@ -6,10 +6,13 @@ Object.prototype.extend = function(a) {
 
 var Game = {
 	_display: null,
-    _uiDisplay: null,
 	_currentScreen: null,
 	_screenWidth: null,
     _screenHeight: null,
+    _screenOffsetX: 0,
+    _screenOffsetY: 0,
+    _screenCellWidth: 25,
+    _screenCellHeight: 25,
     _infoBarWidth: 20,
     _mapWidth: 70,
     _mapHeight: 21,
@@ -28,6 +31,7 @@ var Game = {
         this._mapOffsetY = this._messageHeight;
         this._screenWidth = this._infoBarWidth + this._mapWidth + 2;
         this._screenHeight = this._mapOffsetY + this._mapHeight + 2;
+
         var options = {
             width: this._screenWidth,
             height: this._screenHeight,
@@ -39,16 +43,6 @@ var Game = {
         };
         this._display = new ROT.Display(options);
         this._display.getContainer().setAttribute('id', "game");
-        
-        var uiOptions = {
-            width: this._uiWidth,
-            height: this._uiHeight,
-            fontSize: this._uiFontSize,
-            bg: "rgb(0,0,0)",
-            fontFamily: "Consolas, monospace"
-        };
-        this._uiDisplay = new ROT.Display(uiOptions);
-        this._uiDisplay.getContainer().setAttribute('id', 'ui');
 
         //document.querySelector("figure").appendChild(this._display.getContainer());
 	    // Create a helper function for binding to an event
@@ -71,24 +65,44 @@ var Game = {
 	    bindEventToScreen('keypress');
         bindEventToScreen('click');
         bindEventToScreen('mousemove');
+        window.addEventListener('resize', this.resizeDisplay);
 
         // setup game audio
         this.audio = new Game.Audio();
 	},
+    resizeDisplay: function() {
+        //console.log("WOAH WOAH WOAH");
+        var currentWidth = Game.getDisplay().getContainer().clientWidth;
+        var currentHeight = Game.getDisplay().getContainer().clientHeight;
+
+        var availableHeight = window.innerHeight;
+        var availableWidth = window.innerWidth;
+
+        var scaleX = availableWidth / currentWidth;
+        var scaleY = availableHeight / currentHeight;
+        // keep display proportions the same
+        scaleX = Math.min(scaleX, scaleY);
+        scaleY = scaleX;
+
+        document.getElementById("game").style.width = currentWidth * scaleX + "px";
+        document.getElementById("game").style.height = currentHeight * scaleY + "px";
+
+        // reset screen offsets/cell dimensions so mouse is still accurate
+        var elemRect = Game.getDisplay().getContainer().getBoundingClientRect();
+        Game.setScreenOffsetX(elemRect.left);
+        Game.setScreenOffsetY(elemRect.top);
+        Game.setScreenCellWidth((elemRect.width) / Game.getScreenWidth());
+        Game.setScreenCellHeight((elemRect.height) / Game.getScreenHeight());
+    },
     refresh: function() {
         // Clear the screen
         this._display.clear();
-        // Clear the UI
-        this._uiDisplay.clear();
         // Render the screen
-        this._currentScreen.render(this._display, this._uiDisplay);
+        this._currentScreen.render(this._display);
     },
 	getDisplay: function() {
 		return this._display;
 	},
-    getUIDisplay: function() {
-        return this._uiDisplay;
-    },
     getScreenWidth: function() {
         return this._screenWidth;
     },
@@ -106,6 +120,30 @@ var Game = {
     },
     getMapOffsetY: function() {
         return this._mapOffsetY;
+    },
+    getScreenOffsetX: function() {
+        return this._screenOffsetX;
+    },
+    getScreenOffsetY: function() {
+        return this._screenOffsetY;
+    },
+    getScreenCellWidth: function() {
+        return this._screenCellWidth;
+    },
+    getScreenCellHeight: function() {
+        return this._screenCellHeight;
+    },
+    setScreenOffsetX: function(offset) {
+        this._screenOffsetX = offset;
+    },
+    setScreenOffsetY: function(offset) {
+        this._screenOffsetY = offset;
+    },
+    setScreenCellWidth: function(width) {
+        this._screenCellWidth = width;
+    },
+    setScreenCellHeight: function(height) {
+        this._screenCellHeight = height;
     },
     getInfoBarWidth: function() {
         return this._infoBarWidth;
@@ -139,7 +177,6 @@ window.onload = function() {
     Game.init();
     // Add the containers to our HTML page
     document.body.appendChild(Game.getDisplay().getContainer());
-    //document.body.appendChild(Game.getUIDisplay().getContainer());
     // Load the start screen
     Game.switchScreen(Game.Screen.startScreen);
 };

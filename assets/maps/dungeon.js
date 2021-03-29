@@ -7,6 +7,8 @@ Game.Map.Dungeon = function(tiles, player) {
     this.addEntityAtRandomPosition(player, 0);
     // Add 10 random entities per floor
     this.populateDungeon(0);
+    // setup fov for floor
+    this.setupFov(0);
 };
 
 Game.Map.Dungeon.extend(Game.Map);

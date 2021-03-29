@@ -1,3 +1,5 @@
+/*jshint esversion: 8 */
+
 Game.Map = function(tiles) {
     this._tiles = tiles;
     // cache the width, height, and depth based
@@ -8,7 +10,6 @@ Game.Map = function(tiles) {
     this._width = tiles[0].length;
     this._height = tiles[0][0].length;
     this._fov = [];
-    this.setupFov(0);
     // create a table which will hold the entities
     this._entities = {};
     // Create a table which will hold the items
@@ -33,7 +34,7 @@ Game.Map.prototype.getDepth = function() {
 };
 
 
-
+/*
 Game.Map.prototype.setupFov = function(z) {
     // Keep this in 'map' variable so that we don't lose it.
     var map = this;
@@ -42,7 +43,55 @@ Game.Map.prototype.setupFov = function(z) {
             return map.getEntityAt(x, y, z) || (map.getTile(x, y, z) && map.getTile(x, y, z) != Game.Tile.nullTile && !map.getTile(x, y, z).isBlockingLight());
         }, {topology: 4}));
 };
+*/
 
+Game.Map.prototype.setupFov = function(z) {
+    var fov = [];
+    for (let x = 0; x < this._width; x++) {
+        fov.push([]);
+        for (let y = 0; y < this._height; y++) {
+            var that = this;
+            let isClearTile = function() {
+                return that.getEntityAt(x, y, z) || 
+                    (that.getTile(x, y, z) && 
+                    that.getTile(x, y, z) != Game.Tile.nullTile && 
+                    !that.getTile(x, y, z).isBlockingLight());
+            };
+            fov[x].push(isClearTile);
+        }
+    }
+    this._fov.push(fov);
+};
+
+Game.Map.prototype.computeFov = function(centerX, centerY, z, radius, callback) {
+    //console.log("computing fov");
+    //console.table(this._fov[z]);
+    let x;
+    let y;
+
+    for(let i = 0; i < 720; i++) {
+      x = Math.cos(i * 0.0087266);
+      y = Math.sin(i * 0.0087266);
+      this.doFov(centerX, centerY, x, y, z, radius, callback);
+    }
+  };
+  
+  Game.Map.prototype.doFov = function(centerX, centerY, x, y, z, radius, visibleCallback) {
+  
+    let ox;
+    let oy;
+    ox = centerX + 0.5;
+    oy = centerY + 0.5;
+    for(i = 0; i < radius; i++)
+    {
+      visibleCallback(Math.floor(ox), Math.floor(oy));
+      if(!this._fov[z][Math.floor(ox)][Math.floor(oy)]()) {
+        return;
+      }
+      ox+=x;
+      oy+=y;
+    }
+  };
 
 // Gets the tile for a given coordinate set
 Game.Map.prototype.getTile = function(x, y, z) {

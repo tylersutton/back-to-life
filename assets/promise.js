@@ -2,20 +2,20 @@
  *  https://github.com/ondras/star-wars/blob/master/js/promise.js
  */
 
-var Promise = function() {
+Game.Promise = function() {
 	this._callbacks = {
 		ok: null
 	};
 	this._thenPromise = null;
 };
 
-Promise.prototype.then = function(ok) {
+Game.Promise.prototype.then = function(ok) {
 	this._callbacks.ok = ok;
 	this._thenPromise = new Promise();
 	return this._thenPromise;
 };
 
-Promise.prototype.fulfill = function(value) {
+Game.Promise.prototype.fulfill = function(value) {
 	if (!this._callbacks.ok) { return; }
 
 	var result = this._callbacks.ok(value);

@@ -2,7 +2,7 @@ Game.Animation = function(properties) {
     this._path = properties.path;
     this._curStep = 0;
     this._delay = 50;
-    this._promise = new Promise();
+    this._promise = new Game.Promise();
     this._effects = null;
     this._char = '~';
 };

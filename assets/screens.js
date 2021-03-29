@@ -4,7 +4,7 @@ const VK_RETURN = 13;
 const VK_ESCAPE = 27;
 const VK_A = 65;
 const VK_Z = 90;
-const GOD_MODE = true;
+const GOD_MODE = false;
 
 Game.Screen = { };
 
@@ -13,13 +13,9 @@ Game.Screen.startScreen = {
     _isLoading: null,
     enter: function() {    
         this._isLoading = false;
-        /*
-        Game._display.setOptions({
-            width: Game._menuScreenWidth,
-            forceSquareRatio: false
-        });
-        */
-        console.log("Entered start screen."); 
+        console.log("Entered start screen.");
+        
+        Game.resizeDisplay();
     },
     exit: function() { console.log("Exited start screen."); },
     render: function(display) {
@@ -104,8 +100,6 @@ Game.Screen.startScreen = {
 // Define our playing screen
 Game.Screen.playScreen = {
     _player: null,
-    _screenOffsetX: null,
-    _screenOffsetY: null,
     _mapOffsetX: null,
     _mapOffsetY: null,
     _gameEnded: null,
@@ -113,26 +107,19 @@ Game.Screen.playScreen = {
     _subScreen: null,
     _generator: null,
     _effects: null,
+    _cursorX: null,
+    _cursorY: null,
+    _looking: null,
+    _visibleCells: null, // cached for looking purposes
     enter: function() {  
-        /*
-        Game._display.setOptions({
-            //width: Game._screenWidth,
-            //forceSquareRatio: true
-        });
-        */
-        //var bodyRect = document.body.getBoundingClientRect();
-        var elemRect = Game.getDisplay().getContainer().getBoundingClientRect();
-        this._screenOffsetX = elemRect.left;
-        this._screenOffsetY = elemRect.top;
-        
         //place map in correct location on display
         this._mapOffsetX = Game.getMapOffsetX();
         this._mapOffsetY = Game.getMapOffsetY();
-        
+
         var genProps = {
             width: Game.getMapWidth(),
             height: Game.getMapHeight(),
-            depth: 26,
+            depth: 10,
             minRoomWidth: 4,
             maxRoomWidth: 8
         };
@@ -165,11 +152,14 @@ Game.Screen.playScreen = {
         this._gameEnded = false;
 
         this._waiting = false;
+
+        this._looking = false;
+        this._visibleCells = {};
         // Start the map's engine
         map.getEngine().start();
     },
     exit: function() { console.log("Exited play screen."); },
-    render: function(display, uiDisplay) {
+    render: function(display) {
         // Render player messages
         this.renderMessages(display);
 
@@ -181,7 +171,7 @@ Game.Screen.playScreen = {
 
         // Render subscreen if there is one
         if (this._subScreen && this._subScreen == Game.Screen.helpScreen) {
-            this._subScreen.render(display, uiDisplay);
+            this._subScreen.render(display);
             return;
         }
 
@@ -191,12 +181,14 @@ Game.Screen.playScreen = {
         // Render active effects
         this.renderEffects(display);
 
+        // Render look caption/path if currently looking
+        if (this._looking) {
+            this.renderLooking(display);
+        }
         // Render subscreen if there is one
         if (this._subScreen) {
-            this._subScreen.render(display, uiDisplay);
+            this._subScreen.render(display);
         }
-        // Get the messages in the player's queue and render them
-        Game.Screen.uiScreen.render(this._player, uiDisplay);
     },
     renderTiles: function(display) {
         var mapWidth = Game.getMapWidth();
@@ -214,14 +206,17 @@ Game.Screen.playScreen = {
             this._player.getMap().setupFov(currentDepth+1);
         }
         // Find all visible cells and update the object
-        var tmpFov = map.getFov(this._player.getZ()).compute(
-            this._player.getX(), this._player.getY(), 
+        //console.log("calling computeFov from playscreen");
+        map.computeFov(
+            this._player.getX(), 
+            this._player.getY(),
+            this._player.getZ(),
             this._player.getSightRadius(), 
-            function(x, y, radius, visibility) {
+            function(x, y) {
                 visibleCells[x + "," + y] = true;
                 map.setExplored(x, y, currentDepth, true);
             });
-        console.table(tmpFov);
+        //console.table(tmpFov);
         // Render the explored map cells
         for (var x = 0; x < mapWidth; x++) {
             for (var y = 0; y < mapHeight; y++) {
@@ -264,6 +259,7 @@ Game.Screen.playScreen = {
                 }
             }
         }
+        this._visibleCells = visibleCells;
     },
     renderEffects: function(display) {
         var map = this._player.getMap();
@@ -422,6 +418,55 @@ Game.Screen.playScreen = {
             } 
         }
     },
+    renderLooking: function(display) {
+        // Draw a line from the start to the cursor.
+        var points = Game.getLine(
+            this._player.getX(), 
+            this._player.getY(),
+            this._cursorX,
+            this._cursorY
+        );
+        var map = this._player.getMap();
+        // Render stars along the line.
+        for (var i = 1; i < points.length; i++) {
+            if (this._visibleCells[points[i].x + "," + points[i].y]) {
+                var tile = map.getTile(points[i].x, points[i].y, this._player.getZ());
+                var items = map.getItemsAt(points[i].x, points[i].y, this._player.getZ());
+                if (items) {
+                    tile = items[items.length - 1];
+                }
+                if (map.getEntityAt(points[i].x, points[i].y, this._player.getZ())) {
+                    tile = map.getEntityAt(points[i].x, points[i].y, this._player.getZ());
+                }
+                var foreground = tile.getForeground();
+                console.log("tryna draw text");
+                display.drawText(
+                    points[i].x + Game.getMapOffsetX(), 
+                    points[i].y + Game.getMapOffsetY(),
+                    '%c{' + foreground + '}%b{rgba(255,165,0,0.3)}' + tile.getChar()
+                );
+            }
+        }
+    },
+    moveCursor: function(dx, dy) {
+        console.log("mouse movin");
+        // Make sure we stay within bounds.
+        var newCursorX = Math.max(0, Math.min(this._cursorX + dx, Game.getMapWidth()));
+        // We have to save the last line for the caption.
+        var newCursorY = Math.max(0, Math.min(this._cursorY + dy, Game.getMapHeight()));
+        
+        this._cursorX = newCursorX;
+        this._cursorY = newCursorY;
+    },
+    moveCursorTo: function(x, y) {
+        // Make sure we stay within bounds.
+        var newCursorX = Math.max(0, Math.min(x, Game.getMapWidth()));
+        // We have to save the last line for the caption.
+        var newCursorY = Math.max(0, Math.min(y, Game.getMapHeight()));
+        
+        this._cursorX = newCursorX;
+        this._cursorY = newCursorY;
+    },
     addEffect: function(x, y, char) {
         this._effects[x+','+y] = char;
         Game.refresh();
@@ -449,7 +494,7 @@ Game.Screen.playScreen = {
         // Handle playScreen input
         else if (inputType === 'keydown' && !this._waiting) {
             // Movement
-            if ([37, 52, 100].includes(inputData.keyCode)) { // left/both 4's
+            if ([37, 52, 100].includes(inputData.keyCode)) { // left/both 4's   
                 this.move(-1, 0, 0);
             } else if ([38, 56, 104].includes(inputData.keyCode)) { // up/both 8's
                 this.move(0, -1, 0);
@@ -489,10 +534,13 @@ Game.Screen.playScreen = {
                     Game.Screen.inventoryScreen.setup(this._player, this._player.getItems());
                     this.setSubScreen(Game.Screen.inventoryScreen);
                 }
+                this._looking = false;
                 return;
             } else if (inputData.key === 'h') { // quick-heal
-                this._player.healWithItem();
-                map.getEngine().unlock();
+                if (this._player.healWithItem()) {
+                    map.getEngine().unlock();
+                }
+                this._looking = false;
                 Game.refresh();
                 return;
             } else if (inputData.key === 'l') { // look
@@ -501,6 +549,7 @@ Game.Screen.playScreen = {
                 Game.Screen.lookScreen.setup(this._player,
                     this._player.getX(), this._player.getY());
                 this.setSubScreen(Game.Screen.lookScreen);
+                this._looking = false;
                 return;
             } else if (inputData.key === 'f') { // fire (aim)
                 // Setup the aim screen.
@@ -513,11 +562,13 @@ Game.Screen.playScreen = {
                     Game.sendMessage(this._player, "You're not holding anything to aim with.");
                     Game.refresh();
                 }
+                this._looking = false;
                 return;
             } else if (inputData.key === 's')  { // stat points
                 if (this._player.getStatPoints() > 0) {
                     this._player.useStatPoints();
                 }
+                this._looking = false;
             } else {
                 return;
             }
@@ -527,14 +578,31 @@ Game.Screen.playScreen = {
                 // Setup the help screen.
                 console.log("loading helpScreen");
                 this.setSubScreen(Game.Screen.helpScreen);
+                this._looking = false;
                 return;
             }
             //var keyChar = String.fromCharCode(inputData.charCode);
                 // Not a valid key
-        } else if (inputType === 'click') {
+        } else if (inputType === 'mousemove') {
+            let x = Math.floor(((inputData.clientX - Game._screenOffsetX) / Game._screenCellWidth) - Game.getMapOffsetX());
+            let y = Math.floor(((inputData.clientY - Game._screenOffsetY) / Game._screenCellHeight) - Game.getMapOffsetY());
+            if (x >= 0 && x < Game.getMapWidth() &&
+                    y >= 0 && y < Game.getMapWidth()) {
+                this._looking = true;
+                if (x !== this._cursorX || y !== this._cursorY) {
+                    this.moveCursorTo(x, y);
+                    Game.refresh();
+                }
+            } else {
+                this._looking = false;
+                Game.refresh();
+            }
             
-            var x = Math.floor((inputData.clientX - this._screenOffsetX) / Game._fontSize);
-            var y = Math.floor((inputData.clientY - this._screenOffsetY) / Game._fontSize);
+        } 
+        else if (inputType === 'click') {
+            // console.log("click happened");
+            let x = Math.floor(((inputData.clientX - Game._screenOffsetX) / Game._screenCellWidth)) - Game.getMapOffsetX();
+            let y = Math.floor(((inputData.clientY - Game._screenOffsetY) / Game._screenCellHeight)) - Game.getMapOffsetY();
             
             var path = Game.findShortestPath(map._tiles, this._player.getZ(), 
                                              this._player.getX(), this._player.getY(), x, y);
@@ -558,6 +626,7 @@ Game.Screen.playScreen = {
             };
             if (path) {
                 moveLoop(path);
+                this._looking = false; 
             }
             else {
                 Game.sendMessage(this._player, "You can't move there!");
@@ -570,6 +639,7 @@ Game.Screen.playScreen = {
     },
 
     move: function(dX, dY, dZ) {
+        this._looking = false; 
         var newX = this._player.getX() + dX;
         var newY = this._player.getY() + dY;
         var newZ = this._player.getZ() + dZ;
@@ -595,18 +665,8 @@ Game.Screen.playScreen = {
         this._player.getMap().getEngine().unlock();
     },
     setSubScreen: function(subScreen) {
-        if (subScreen && subScreen != Game.Screen.lookScreen &&
-                    subScreen != Game.Screen.aimScreen) {
-            Game._display.setOptions({
-                //width: Game._menuScreenWidth,
-                forceSquareRatio: false
-            });
-        }
-        else {
-            Game._display.setOptions({
-                width: Game._screenWidth,
-                //forceSquareRatio: true
-            });
+        if (subScreen) {
+            this._looking = false;
         }
         this._subScreen = subScreen;
         // Refresh screen on changing the subscreen
@@ -619,68 +679,6 @@ Game.Screen.playScreen = {
             Game.sendMessage(this._player, emptyMessage);
             Game.refresh();
         }
-    }
-};
-
-Game.Screen.uiScreen = {
-    render: function(player, display, subScreen) {
-        var messages = player.getMessages();
-        var messageY = 3;
-        var i;
-        if (messages) {
-            for (i = 0; i < messages.length; i++) {
-                // Draw each message, adding the number of lines
-                messageY += display.drawText(
-                    1, 
-                    messageY,
-                    messages[i]
-                );
-            }
-        }
-        var line = '%c{rgb(60,60,60)}';
-        for (i = 0; i < Game.getUIWidth(); i++) {
-            line += '=';
-        }
-        
-        // Render player HP 
-        var stats = '%c{}';
-        var playerStats = '%c{}HP: ' + player.getHp() + '/' + 
-                player.getMaxHp() + 
-                '   ATK: ' + player.getAttackValueWithoutDice() + 
-                '+d' + player.getAttackDice() + 
-                '   DEF: ' + player.getDefenseValue(); 
-        display.drawText(1, 1, playerStats);
-        if (subScreen) {
-            //console.log("has subscreen");
-            if (subScreen == Game.Screen.lookScreen) {
-                //console.log("tryna print stats: " + stats);
-                display.drawText(1, 0, '%c{}' + subScreen._caption);
-            }
-        }
-        var levelBar = '=====>';
-        var barLength = 6;
-        var statPoints = '';
-        if (player.getStatPoints() > 0) {
-            statPoints = '%c{white}[%c{rgb(50,255,50)}s%c{white}]->stat pts: ' + player.getStatPoints();
-        }
-        var n = Math.round(player.getCurrentLevelProgress() * barLength - 1);
-        var temp = levelBar.split('');
-        temp.splice(0, barLength - n - 1);
-        levelBar = temp.join('');
-        for (i = 0; i < barLength - n; i++) {
-            levelBar += '.';
-        }
-        var currentFloor = player.getZ() + 1; 
-        stats += 'FLOOR: ' + currentFloor + '   LVL: [%c{rgb(50,255,50)}' + player.getLevel() + 
-            '%c{}' + levelBar + (player.getLevel()+1) + ']   XP: ' + player.getExperience() + '   ';
-        //stats += vsprintf('FLOOR: %d   LVL: [%d' + levelBar + '%d]   XP: %d   ', 
-         //   [player.getZ()+1,
-        //     player.getLevel(), player.getLevel()+1, player.getExperience()]);
-        //stats += statPoints;
-        
-        
-        display.drawText(1, 2, stats);
-        display.drawText(Game.getUIWidth() - statPoints.length + 35, 1, statPoints);
     }
 };
 
@@ -1083,21 +1081,7 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
         return true;
     }
 });
-/*
-Game.Screen.pickupScreen = new Game.Screen.ItemListScreen({
-    caption: 'Choose the items you wish to pickup.',
-    canSelect: true,
-    canSelectMultipleItems: true,
-    ok: function(selectedItems) {
-        // Try to pick up all items, messaging the player if they couldn't all be
-        // picked up.
-        if (!this._player.pickupAllItems()) {
-            Game.sendMessage(this._player, "Your inventory is full! Not all items were picked up.");
-        }
-        return true;
-    }
-});
-*/
+
 Game.Screen.gainStatScreen = {
     setup: function(entity) {
         // Must be called before rendering.
@@ -1256,8 +1240,9 @@ Game.Screen.TargetBasedScreen.prototype.setup = function(player, startX, startY,
     this._item = item;
     // Cache the FOV
     var visibleCells = {};
-    this._player.getMap().getFov(this._player.getZ()).compute(
-        this._player.getX(), this._player.getY(), 
+    this._player.getMap().computeFov(
+        this._player.getX(), this._player.getY(),
+        this._player.getZ(), 
         this._player.getSightRadius(), 
         function(x, y, radius, visibility) {
             visibleCells[x + "," + y] = true;
@@ -1280,13 +1265,11 @@ Game.Screen.TargetBasedScreen.prototype.setup = function(player, startX, startY,
     this.cycleCursorTarget();
 };
 
-Game.Screen.TargetBasedScreen.prototype.render = function(display) {
-    Game.Screen.playScreen.renderTiles.call(Game.Screen.playScreen, display);
-    
+Game.Screen.TargetBasedScreen.prototype.render = function(display) {    
     // Draw a line from the start to the cursor.
     var points = Game.getLine(this._startX, this._startY, this._cursorX,
         this._cursorY);
-
+    var map = this._player.getMap();
     // Render stars along the line.
     for (var i = 0; i < points.length; i++) {
         if (i == 0) {
@@ -1296,21 +1279,23 @@ Game.Screen.TargetBasedScreen.prototype.render = function(display) {
                 '%b{rgba(255,165,0,0.3)}@'
             );
         } else {
-            var map = this._player.getMap();
-            var tile = map.getTile(points[i].x, points[i].y, this._player.getZ());
-            var items = map.getItemsAt(points[i].x, points[i].y, this._player.getZ());
-            
-            if (items) {
-                tile = items[items.length - 1];
+            if (this._visibleCells[points[i].x + "," + points[i].y]) {
+                var tile = map.getTile(points[i].x, points[i].y, this._player.getZ());
+                var items = map.getItemsAt(points[i].x, points[i].y, this._player.getZ());
+                
+                if (items) {
+                    tile = items[items.length - 1];
+                }
+                if (map.getEntityAt(points[i].x, points[i].y, this._player.getZ())) {
+                    tile = map.getEntityAt(points[i].x, points[i].y, this._player.getZ());
+                }
+                var foreground = tile.getForeground();
+                display.drawText(
+                    points[i].x + Game.getMapOffsetX(), 
+                    points[i].y + Game.getMapOffsetY(),
+                    '%c{' + foreground + '}%b{rgba(255,165,0,0.3)}' + tile.getChar()
+                );
             }
-            if (map.getEntityAt(points[i].x, points[i].y, this._player.getZ())) {
-                tile = map.getEntityAt(points[i].x, points[i].y, this._player.getZ());
-            }
-            var foreground = tile.getForeground();
-            display.drawText(
-                points[i].x + Game.getMapOffsetX(), 
-                points[i].y + Game.getMapOffsetY(),
-                '%c{' + foreground + '}%b{rgba(255,165,0,0.3)}' + tile.getChar());
         }
     }
 
@@ -1351,9 +1336,14 @@ Game.Screen.TargetBasedScreen.prototype.handleInput = function(inputType, inputD
             this.executeOkFunction();
         }
     } else if (inputType === 'mousemove') {
-        var x = Math.floor((inputData.clientX - Game.Screen.playScreen._screenOffsetX) / Game._fontSize);
-        var y = Math.floor((inputData.clientY - Game.Screen.playScreen._screenOffsetY) / Game._fontSize);
-        this.moveCursorTo(x, y);
+        //console.log("Game._screenCellWidth: " + Game._screenCellWidth);
+        var x = Math.floor(((inputData.clientX - Game._screenOffsetX) / Game._screenCellWidth) - Game.getMapOffsetX());
+        var y = Math.floor(((inputData.clientY - Game._screenOffsetY) / Game._screenCellHeight) - Game.getMapOffsetY());
+        if (x !== this._cursorX || y !== this._cursorY) {
+            //console.log("current cursor: " + this._cursorX + ", " + this._cursorY);
+            this.moveCursorTo(x, y);
+            //console.log("moving cursor to " + x + ", " + y);
+        }
     }
     Game.refresh();
 };
@@ -1361,25 +1351,29 @@ Game.Screen.TargetBasedScreen.prototype.handleInput = function(inputType, inputD
 Game.Screen.TargetBasedScreen.prototype.moveCursor = function(dx, dy) {
     
     // Make sure we stay within bounds.
-    var newCursorX = Math.max(0, Math.min(this._cursorX + dx, Game.getScreenWidth()));
+    var newCursorX = Math.max(0, Math.min(this._cursorX + dx, Game.getMapWidth()));
     // We have to save the last line for the caption.
-    var newCursorY = Math.max(0, Math.min(this._cursorY + dy, Game.getScreenHeight() - 1));
-    if (this._visibleCells[newCursorX + "," + newCursorY]) {
-        this._cursorX = newCursorX;
-        this._cursorY = newCursorY;
-    }
+    var newCursorY = Math.max(0, Math.min(this._cursorY + dy, Game.getMapHeight()));
+    
+    this._cursorX = newCursorX;
+    this._cursorY = newCursorY;
 };
 
 Game.Screen.TargetBasedScreen.prototype.moveCursorTo = function(x, y) {
     
     // Make sure we stay within bounds.
-    var newCursorX = Math.max(0, Math.min(x, Game.getScreenWidth()));
+    var newCursorX = Math.max(0, Math.min(x, Game.getMapWidth()));
     // We have to save the last line for the caption.
-    var newCursorY = Math.max(0, Math.min(y, Game.getScreenHeight() - 1));
+    var newCursorY = Math.max(0, Math.min(y, Game.getMapHeight()));
+    
+    this._cursorX = newCursorX;
+    this._cursorY = newCursorY;
+    /*
     if (this._visibleCells[newCursorX + "," + newCursorY]) {
         this._cursorX = newCursorX;
         this._cursorY = newCursorY;
     }
+    */
 };
 
 Game.Screen.TargetBasedScreen.prototype.cycleCursorTarget = function() {
@@ -1421,27 +1415,35 @@ Game.Screen.lookScreen = new Game.Screen.TargetBasedScreen({
                 // If we have items, we want to render the top most item
                 if (items) {
                     var item = items[items.length - 1];
-                    return sprintf('You see %s (%s)',
+                    return sprintf('You see %s. (%s)',
                         item.describeA(false),
                         item.getDetails());
                 // Else check if there's an entity
                 } else if (map.getEntityAt(x, y, z)) {
                     var entity = map.getEntityAt(x, y, z);
                     //console.log("entity details: " + entity.getDetails())
-                    return sprintf('You see %s (%s)',
+                    return sprintf('You see %s. (%s)',
                         entity.describeA(false),
                         entity.getDetails());
+                } else {
+                    // If there was no entity/item or the tile wasn't visible, then use
+                    // the tile information.
+                    return sprintf('You see %s.',
+                        map.getTile(x, y, z).getDescription());
                 }
+            } else {
+                // If the tile is explored but not visible, then use
+                // the tile information.
+                return sprintf('You remember seeing %s.',
+                    map.getTile(x, y, z).getDescription());
             }
-            // If there was no entity/item or the tile wasn't visible, then use
-            // the tile information.
-            return sprintf('You see %s',
-                map.getTile(x, y, z).getDescription());
+            
 
         } else {
             // If the tile is not explored, show the null tile description.
-            return sprintf('You see %s',
-                Game.Tile.nullTile.getDescription());
+            return '';
+            //return sprintf('You see %s.',
+                //Game.Tile.nullTile.getDescription());
         }
     }
 });

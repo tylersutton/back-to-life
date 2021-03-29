@@ -549,10 +549,12 @@ Game.EntityMixins.Sight = {
 
         // Compute the FOV and check if the coordinates are in there.
         var found = false;
-        this.getMap().getFov(this.getZ()).compute(
-            this.getX(), this.getY(), 
+        this.getMap().computeFov(
+            this.getX(), 
+            this.getY(),
+            this.getZ(), 
             this.getSightRadius(), 
-            function(x, y, radius, visibility) {
+            function(x, y) {
                 if (x === otherX && y === otherY) {
                     found = true;
                 }
@@ -579,8 +581,9 @@ Game.EntityMixins.Sight = {
 
         // Compute the FOV and check if the coordinates are in there.
         var found = false;
-        this.getMap().getFov(this.getZ()).compute(
-            this.getX(), this.getY(), 
+        this.getMap().computeFov(
+            this.getX(), this.getY(),
+            this.getZ(),
             this.getSightRadius(), 
             function(x, y, radius, visibility) {
                 if (x === otherX && y === otherY) {
@@ -604,15 +607,17 @@ Game.EntityMixins.Sight = {
             var maxX = Math.min(this.getMap().getWidth(), this.getX() + this.getSightRadius());
             var minY = Math.max(0, this.getY() - this.getSightRadius());
             var maxY = Math.min(this.getMap().getWidth(), this.getY() + this.getSightRadius());
-            var fov = this.getMap().getFov(this.getZ());
+            var map = this.getMap();
             for (var i = minX; i <= maxX; i++) {
                 for (var j = minY; j <= maxY; j++) {
                     if (this.getMap().getItemsAt(i, j, this.getZ())) {
                         found = false;
-                        fov.compute(
-                            this.getX(), this.getY(), 
+                        map.computeFov(
+                            this.getX(), 
+                            this.getY(),
+                            this.getZ(),
                             this.getSightRadius(), 
-                            function(x, y, radius, visibility) {
+                            function(x, y) {
                                 if (x === i && y === j) {
                                     found = true;
                                 }
