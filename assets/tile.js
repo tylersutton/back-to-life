@@ -63,14 +63,14 @@ Game.Tile.floorTile = new Game.Tile({
 Game.Tile.wallTile = new Game.Tile({
     character: '#',
     foreground: 'rgb(30, 30, 30)',
-    background: 'rgb(112, 68, 68)',
+    background: 'rgb(140, 68, 68)',
     description: 'a stone wall'
 });
 Game.Tile.doorTile = new Game.Tile({
     character: '+',
     walkable: true,
     foreground: 'rgb(191,137,75)',
-    background: 'rgb(122, 45, 12)',
+    background: 'rgb(163, 87, 0)',
     blocksLight: true,
     description: 'a wooden door'
 });

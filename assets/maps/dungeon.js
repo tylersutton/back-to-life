@@ -1,3 +1,5 @@
+/*jshint esversion: 8 */
+
 Game.Map.Dungeon = function(tiles, player) {
     // Call the Map constructor
     Game.Map.call(this, tiles);
@@ -11,7 +13,7 @@ Game.Map.Dungeon.extend(Game.Map);
 
 Game.Map.Dungeon.prototype.populateDungeon = function(z, player) {
     var playerLevel = (player && player.getLevel()) ? player.getLevel() : 1;
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 20; i++) {
         // Add random entity
         var entity = Game.EntityRepository.createRandom(z);
         this.addEntityAtRandomPosition(entity, z);
@@ -25,18 +27,18 @@ Game.Map.Dungeon.prototype.populateDungeon = function(z, player) {
             }
         }
     }
-    // add 3 to 5 health potions 
-    var numHealing = Math.round((Math.random() * 2) + 3);
-    for (var i = 0; i < numHealing; i++) {
+    // add 4 to 7 health potions 
+    var numHealing = Math.round((Math.random() * 4) + 3);
+    for (let i = 0; i < numHealing; i++) {
         // add random item
-        var item = Game.ItemRepository.createRandom(z, [Game.ItemMixins.Healing]);
+        let item = Game.ItemRepository.createRandom(z, [Game.ItemMixins.Healing]);
         this.addItemAtRandomPosition(item, z);
     }
-    // add 1 to 2 scrolls 
-    var numScrolls = Math.round(Math.random() + 1);
-    for (var i = 0; i < numScrolls; i++) {
+    // add 2 to 3 scrolls 
+    var numScrolls = Math.round((Math.random() * 2) + 1);
+    for (let i = 0; i < numScrolls; i++) {
         // add random item
-        var item = Game.ItemRepository.createRandom(z, [Game.ItemMixins.Scroll]);
+        let item = Game.ItemRepository.createRandom(z, [Game.ItemMixins.Scroll]);
         this.addItemAtRandomPosition(item, z);
     }
     // 80% chance to add random wieldable

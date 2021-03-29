@@ -39,7 +39,7 @@ Game.ItemRepository.define('dagger', {
 
 Game.ItemRepository.define('axe', {
     name: 'axe',
-    character: '\\',
+    character: '=',
     foreground: '(rgb(175,175,175)',
     attackValue: 2,
     wieldable: true,

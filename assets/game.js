@@ -7,10 +7,15 @@ Object.prototype.extend = function(a) {
 var Game = {
 	_display: null,
     _uiDisplay: null,
-    _titleDisplay: null,
 	_currentScreen: null,
-	_screenWidth: 56,
-    _screenHeight: 20,
+	_screenWidth: null,
+    _screenHeight: null,
+    _infoBarWidth: 20,
+    _mapWidth: 70,
+    _mapHeight: 21,
+    _mapOffsetX: null, //statWidth + 1
+    _mapOffsetY: null,
+    _messageHeight: 3,
     _fontSize: 40,
     _menuScreenWidth: 50,
     _uiWidth: 100,
@@ -19,7 +24,11 @@ var Game = {
 
     init: function() {
 	    // Any necessary initialization will go here.
-	    var options = {
+	    this._mapOffsetX = this._infoBarWidth + 1;
+        this._mapOffsetY = this._messageHeight;
+        this._screenWidth = this._infoBarWidth + this._mapWidth + 2;
+        this._screenHeight = this._mapOffsetY + this._mapHeight + 2;
+        var options = {
             width: this._screenWidth,
             height: this._screenHeight,
             fontSize: this._fontSize,
@@ -40,15 +49,7 @@ var Game = {
         };
         this._uiDisplay = new ROT.Display(uiOptions);
         this._uiDisplay.getContainer().setAttribute('id', 'ui');
-        var titleOptions = {
-            width: 40,
-            height: 1,
-            fontSize: 31,
-            bg: "rgb(0,0,0)",
-            fontFamily: "Consolas, monospace"
-        };
-        this._titleDisplay = new ROT.Display(titleOptions);
-        this._titleDisplay.getContainer().setAttribute('id', 'title');
+
         //document.querySelector("figure").appendChild(this._display.getContainer());
 	    // Create a helper function for binding to an event
 	    // and making it send it to the screen
@@ -88,14 +89,29 @@ var Game = {
     getUIDisplay: function() {
         return this._uiDisplay;
     },
-    getTitleDisplay: function() {
-        return this._titleDisplay;
-    },
     getScreenWidth: function() {
         return this._screenWidth;
     },
     getScreenHeight: function() {
         return this._screenHeight;
+    },
+    getMapWidth: function() {
+        return this._mapWidth;
+    },
+    getMapHeight: function() {
+        return this._mapHeight;
+    },
+    getMapOffsetX: function() {
+        return this._mapOffsetX;
+    },
+    getMapOffsetY: function() {
+        return this._mapOffsetY;
+    },
+    getInfoBarWidth: function() {
+        return this._infoBarWidth;
+    },
+    getMessageHeight: function() {
+        return this._messageHeight;
     },
     getUIWidth: function() {
         return this._uiWidth;
@@ -122,9 +138,8 @@ window.onload = function() {
     // Initialize the game
     Game.init();
     // Add the containers to our HTML page
-    document.body.appendChild(Game.getTitleDisplay().getContainer());
     document.body.appendChild(Game.getDisplay().getContainer());
-    document.body.appendChild(Game.getUIDisplay().getContainer());
+    //document.body.appendChild(Game.getUIDisplay().getContainer());
     // Load the start screen
     Game.switchScreen(Game.Screen.startScreen);
 };

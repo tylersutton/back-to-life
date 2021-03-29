@@ -4,7 +4,7 @@ const VK_RETURN = 13;
 const VK_ESCAPE = 27;
 const VK_A = 65;
 const VK_Z = 90;
-const GOD_MODE = false;
+const GOD_MODE = true;
 
 Game.Screen = { };
 
@@ -106,26 +106,32 @@ Game.Screen.playScreen = {
     _player: null,
     _screenOffsetX: null,
     _screenOffsetY: null,
+    _mapOffsetX: null,
+    _mapOffsetY: null,
     _gameEnded: null,
     _waiting: null,
     _subScreen: null,
     _generator: null,
     _effects: null,
     enter: function() {  
+        /*
         Game._display.setOptions({
-            width: Game._screenWidth,
+            //width: Game._screenWidth,
             //forceSquareRatio: true
         });
-    
+        */
         //var bodyRect = document.body.getBoundingClientRect();
         var elemRect = Game.getDisplay().getContainer().getBoundingClientRect();
         this._screenOffsetX = elemRect.left;
         this._screenOffsetY = elemRect.top;
         
+        //place map in correct location on display
+        this._mapOffsetX = Game.getMapOffsetX();
+        this._mapOffsetY = Game.getMapOffsetY();
         
         var genProps = {
-            width: Game.getScreenWidth(),
-            height: Game.getScreenHeight(),
+            width: Game.getMapWidth(),
+            height: Game.getMapHeight(),
             depth: 26,
             minRoomWidth: 4,
             maxRoomWidth: 8
@@ -164,6 +170,21 @@ Game.Screen.playScreen = {
     },
     exit: function() { console.log("Exited play screen."); },
     render: function(display, uiDisplay) {
+        // Render player messages
+        this.renderMessages(display);
+
+        // Render player information on left side of screen
+        this.renderInfoBar(display);
+
+        // Render player options on bottom of screen
+        this.renderOptionsBar(display);
+
+        // Render subscreen if there is one
+        if (this._subScreen && this._subScreen == Game.Screen.helpScreen) {
+            this._subScreen.render(display, uiDisplay);
+            return;
+        }
+
         // Render map tiles
         this.renderTiles(display, this._subScreen);
 
@@ -178,8 +199,8 @@ Game.Screen.playScreen = {
         Game.Screen.uiScreen.render(this._player, uiDisplay);
     },
     renderTiles: function(display) {
-        var screenWidth = Game.getScreenWidth();
-        var screenHeight = Game.getScreenHeight();
+        var mapWidth = Game.getMapWidth();
+        var mapHeight = Game.getMapHeight();
 
         // This object will keep track of all visible map cells
         var visibleCells = {};
@@ -193,17 +214,17 @@ Game.Screen.playScreen = {
             this._player.getMap().setupFov(currentDepth+1);
         }
         // Find all visible cells and update the object
-        map.getFov(this._player.getZ()).compute(
+        var tmpFov = map.getFov(this._player.getZ()).compute(
             this._player.getX(), this._player.getY(), 
             this._player.getSightRadius(), 
             function(x, y, radius, visibility) {
                 visibleCells[x + "," + y] = true;
                 map.setExplored(x, y, currentDepth, true);
             });
-        
+        console.table(tmpFov);
         // Render the explored map cells
-        for (var x = 0; x < screenWidth; x++) {
-            for (var y = 0; y < screenHeight; y++) {
+        for (var x = 0; x < mapWidth; x++) {
+            for (var y = 0; y < mapHeight; y++) {
                 if (GOD_MODE || map.isExplored(x, y, currentDepth)) {
                     // Fetch the glyph for the tile and render it to the screen
                     // at the offset position.
@@ -234,8 +255,8 @@ Game.Screen.playScreen = {
                         background = Game.rgbToGrayscale(background);
                     }
                     display.draw(
-                        x,
-                        y,
+                        x + this._mapOffsetX,
+                        y + this._mapOffsetY,
                         tile.getChar(), 
                         foreground, 
                         background
@@ -246,19 +267,159 @@ Game.Screen.playScreen = {
     },
     renderEffects: function(display) {
         var map = this._player.getMap();
-        var screenWidth = Game.getScreenWidth();
-        var screenHeight = Game.getScreenHeight();
-        for (var x = 0; x < screenWidth; x++) {
-            for (var y = 0; y < screenHeight; y++) {
+        var mapWidth = Game.getMapWidth();
+        var mapHeight = Game.getMapHeight();
+        for (var x = 0; x < mapWidth; x++) {
+            for (var y = 0; y < mapHeight; y++) {
                 if (this._effects[x+','+y]) {
                     var tile = map.getTile(x, y, this._player.getZ());
                     var background = Game.scaleRGB(
                         tile.getBackground(), 
                         this._shadows[this._player.getZ()][x][y]
                     );
-                    display.draw(x, y, this._effects[x+','+y], 'white', background);
+                    display.draw(
+                        x + this._mapOffsetX, 
+                        y + this._mapOffsetY, 
+                        this._effects[x+','+y], 
+                        'white', 
+                        background
+                    );
                 }
             }
+        }
+    },
+    renderMessages: function(display) {
+        var messages = this._player.getMessages();
+        var messageY = 0;
+        var i;
+        if (messages) {
+            for (i = 0; i < messages.length; i++) {
+                // Draw each message, adding the number of lines
+                messageY += display.drawText(
+                    this._mapOffsetX, 
+                    messageY,
+                    messages[i]
+                );
+            }
+        }
+    },
+    renderInfoBar: function(display) {
+        // Render player description
+        var playerDesc = this._player.getRepresentation() + 
+                ': ' + this._player.describeA(false);
+                //this._player.getDetails();
+        display.drawText(0, 0, playerDesc);
+        
+        // Render player health
+        var playerHP = 'Health: ' + this._player.getHp() + '/' + this._player.getMaxHp();
+        var hpBarLength = Math.floor(Game.getInfoBarWidth() * this._player.getHp() / this._player.getMaxHp());
+        display.drawText(
+            Math.floor((Game.getInfoBarWidth() / 2) - (playerHP.length / 2)), 
+            1, 
+            playerHP, 
+            'white',
+            'black'
+        );
+        for (let i = 0; i < Game.getInfoBarWidth(); i++) {
+            if (i < hpBarLength) {
+                display.drawOver(i, 1, '', null, "rgb(125,0,0)");
+            } else {
+                display.drawOver(i, 1, '', null, "rgb(60,0,0)");
+            }
+        }
+       
+        // Render player attack and defense
+        var playerStats = 
+                'Atk: ' + this._player.getAttackValueWithoutDice() + 
+                '+d' + this._player.getAttackDice() + 
+                '  Def: ' + this._player.getDefenseValue(); 
+        display.drawText(
+            Math.floor((Game.getInfoBarWidth() / 2) - (playerStats.length / 2)), 
+            2, 
+            playerStats
+        );
+
+        // Render player's level bar
+        var levelBar = '=========>';
+        var levelBarLength = 10;
+        /*
+        var statPoints = '';
+        if (this._player.getStatPoints() > 0) {
+            statPoints = '%c{white}[%c{rgb(50,255,50)}s%c{white}]->stat pts: ' + player.getStatPoints();
+        }
+        */
+        var n = Math.round(this._player.getCurrentLevelProgress() * levelBarLength - 1);
+        var temp = levelBar.split('');
+        temp.splice(0, levelBarLength - n - 1);
+        levelBar = temp.join('');
+        for (i = 0; i < levelBarLength - n; i++) {
+            levelBar += '.';
+        }
+        var levelStats = 'Lvl: [%c{rgb(50,255,50)}' + this._player.getLevel() + 
+            '%c{}' + levelBar + (this._player.getLevel()+1) + ']';
+        display.drawText(
+            0,
+            4,
+            levelStats
+        );
+        var xpAmount = "XP: " + this._player.getExperience();
+        display.drawText(
+            0,
+            5,
+            xpAmount
+        );
+
+        // Render player's current floor
+        var currentFloor = this._player.getZ() + 1; 
+        var playerFloor = 'Floor: ' + currentFloor;
+        display.drawText(
+            Math.floor((Game.getInfoBarWidth() / 2) - (playerFloor.length / 2)), 
+            Game.getScreenHeight() - 1, 
+            playerFloor
+        );
+    },
+    renderOptionsBar: function(display) {
+        var width = Game.getMapWidth();
+        var x = Game.getMapOffsetX() + 1;
+        var y = Game.getScreenHeight() - 1;
+        // render help button
+        var helpButton = "%c{white}Help (%c{rgb(255,255,0)}?%c{white})";
+        display.drawText(x, y, helpButton);
+        for (let i = x - 1; i < x + helpButton.length - 36 + 1; i++) {
+                display.drawOver(i, y, '', null, 'rgb(0,10,50)');
+        }
+        x += helpButton.length - 36 + 4;
+
+        // render inventory button
+        var inventoryButton = "%c{rgb(255,255,0)}I%c{white}nventory";
+        display.drawText(x, y, inventoryButton);
+        for (let i = x - 1; i < x + inventoryButton.length - 27 + 1; i++) {
+            display.drawOver(i, y, '', null, 'rgb(0,10,50)');
+        }
+        x += inventoryButton.length - 27 + 4;
+
+        // render look button
+        var lookButton = "%c{rgb(255,255,0)}L%c{white}ook";
+        display.drawText(x, y, lookButton);
+        for (let i = x - 1; i < x + lookButton.length - 27 + 1; i++) {
+            display.drawOver(i, y, '', null, 'rgb(0,10,50)');
+        }
+        x += lookButton.length - 27 + 4;
+
+        // render statpoints button
+        statPoints = '%c{rgb(255,255,0)}S%c{white}tat pts: ' + this._player.getStatPoints();
+        if (this._player.getStatPoints() > 0) {
+            display.drawText(x, y, statPoints);
+        } else {
+            display.drawText(x, y, statPoints, 'rgb(100,100,100)');
+        }
+        
+        for (let i = x - 1; i < x + statPoints.length - 27 + 1; i++) {
+            if (this._player.getStatPoints() > 0) {
+                display.drawOver(i, y, '', null, 'rgb(0,100,0)');
+            } else {
+                display.drawOver(i, y, '', null, 'rgb(30,30,30)');
+            } 
         }
     },
     addEffect: function(x, y, char) {
@@ -304,7 +465,7 @@ Game.Screen.playScreen = {
                 this.move(1, 1, 0);
             } else if ([49, 97].includes(inputData.keyCode)) { // down-left/both 1's
                 this.move(-1, 1, 0);
-            } else if (inputData.key === 'z') { // wait
+            } else if (inputData.key === 'z' || [53, 101].includes(inputData.keyCode)) { // wait
                 this.move(0, 0, 0);   
             } else if (inputData.key === 'Enter') {
                 var tile = map.getTile(
@@ -582,16 +743,24 @@ Game.Screen.ItemListScreen.prototype.setup = function(player, items) {
 };
 Game.Screen.ItemListScreen.prototype.render = function(display) {
     var letters = 'abcdefghijklmnopqrstuvwxyz';
-    // Render the caption in the top row
-    display.drawText(Math.floor((Game._screenWidth / 2) - (this._caption.length / 2)), top, this._caption);
+    
     // Render the no item row if enabled
-    var width = Math.floor(2 * Game._screenWidth / 3);
+    var width = Math.floor(2 * Game.getMapWidth() / 3);
     var height = this._items.length + 2;
+    var left = Math.floor((Game.getMapWidth() / 2) - (width / 2)) + Game.getMapOffsetX();
+    var top = Math.floor((Game.getMapHeight() / 2) - (height / 2)) + Game.getMapOffsetY();
+
     if (this._hasNoItemOption) {
         height += 3;
     }
-    var left = Math.floor((Game._screenWidth / 2) - (width / 2));
-    var top = Math.floor((Game._screenHeight / 2) - (height / 2));
+    
+    // Render the caption in the top row
+    display.drawText(
+        Math.floor((Game.getMapWidth() / 2) - (this._caption.length / 2)) + Game.getMapOffsetX(), 
+        top, 
+        this._caption
+    );
+
     for (let i = left; i < left + width; i++) {
         for (let j = top; j < top + height; j++) {
             if (i == left && j == top) {
@@ -615,7 +784,11 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
     }
     var x = left + 1;
     var y = top;
-    display.drawText(Math.floor((Game._screenWidth / 2) - (this._caption.length / 2)), y, this._caption);
+    display.drawText(
+        Math.floor((Game.getMapWidth() / 2) - (this._caption.length / 2)) + Game.getMapOffsetX(), 
+        y, 
+        this._caption
+    );
     y ++;
     if (this._hasNoItemOption) {
         display.drawText(x, y, '0 - no item');
@@ -696,7 +869,7 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
             }
             var optionsWidth = optionsDisplay[0].length;
             var optionsHeight = optionsDisplay.length;
-            var optionsX = Math.floor((Game._screenWidth / 2) - (optionsWidth / 2));
+            var optionsX = Math.floor((Game.getMapWidth() / 2) - (optionsWidth / 2)) + Game.getMapOffsetX();
             var optionsY = top + 1;
             //display.drawText(optionsX, optionsY++, topBar);
             display.drawText(optionsX, optionsY, optionsDisplay[0]);
@@ -935,10 +1108,10 @@ Game.Screen.gainStatScreen = {
         var letters = 'abcdefghijklmnopqrstuvwxyz';
         var caption = 'Choose a stat to increase:';
         
-        var width = Math.floor((2 * Game._screenWidth / 3))+1;
+        var width = Math.floor((2 * Game.getMapWidth() / 3)) + 1;
         var height = this._options.length + 4;
-        var left = Math.floor((Game._screenWidth / 2) - (width / 2));
-        var top = Math.floor((Game._screenHeight / 2) - (height / 2));
+        var left = Math.floor((Game.getMapWidth() / 2) - (width / 2)) + Game.getMapOffsetX();
+        var top = Math.floor((Game.getMapHeight() / 2) - (height / 2)) + Game.getMapOffsetY();
         for (let i = left; i < left + width; i++) {
             for (let j = top; j < top + height; j++) {
                 if (i == left && j == top) {
@@ -961,7 +1134,11 @@ Game.Screen.gainStatScreen = {
             }
         }
 
-        display.drawText(Math.floor((Game._screenWidth / 2) - (caption.length / 2)), top, caption);
+        display.drawText(
+            Math.floor((Game.getMapWidth() / 2) - (caption.length / 2)) + Game.getMapOffsetX(), 
+            top, 
+            caption
+        );
 
         var x = left + 2;
         var y = top + 2;
@@ -980,7 +1157,7 @@ Game.Screen.gainStatScreen = {
 
         // Render remaining stat points
         display.drawText(
-            Math.floor((Game._screenWidth / 2) - (remainingPoints.length / 2)), 
+            Math.floor((Game.getMapWidth() / 2) - (remainingPoints.length / 2)) + Game.getMapOffsetX(), 
             top + height - 1,
             remainingPoints
         );   
@@ -1014,26 +1191,38 @@ Game.Screen.helpScreen = {
     render: function(display) {
         var text =   'Back to Life! - Help';
         var border = '--------------------';
-        var y = 0;
-        display.drawText((Game._menuScreenWidth / 2) - (text.length / 2), y++, text);
-        display.drawText((Game._menuScreenWidth / 2) - (text.length / 2), y++, border);
+        var x = Game.getMapOffsetX();
+        var y = Game.getMapOffsetY();
+        /*
+        for (let i = x; i < i + Game.getMapWidth(); i++) {
+            for (let j = y; j < y + Game.getMapHeight(); j++) {
+                //display.draw(i, j, ' ');
+            }
+        }*/
+        
+        display.drawText((Game.getMapWidth() / 2) - (text.length / 2) + x, y++, text);
+        display.drawText((Game.getMapWidth() / 2) - (text.length / 2) + x, y++, border);
         //display.drawText(0, y++, "You've been wrongly sent to Hell. Find the Ruler of Hell and defeat him to come back to life!");
         y++;
-        display.drawText(0, y++, 'Controls:');
+        display.drawText(x, y++, 'Controls:');
         y++;
-        display.drawText(0, y++, 'Arrow keys/numpad/mouse to move');
-        display.drawText(0, y++, '[Enter] to use stairs/fire bows/activate scrolls');
-        display.drawText(0, y++, '[c] to cycle targets while aiming');
-        display.drawText(0, y++, '[f] to aim, press again to fire');
-        display.drawText(0, y++, '[h] to quick-heal with an item');
-        display.drawText(0, y++, '[i] to open inventory');
-        display.drawText(0, y++, '[s] to use stat points');
-        display.drawText(0, y++, '[z] to wait a turn');
-        display.drawText(0, y++, '[l] to look around you');
-        display.drawText(0, y++, '[?] to show this help screen');
+        display.drawText(x, y++, 'Arrow keys/numpad/mouse to move');
+        display.drawText(x, y++, '[Enter] to use stairs/fire bows/activate scrolls');
+        display.drawText(x, y++, '[c] to cycle targets while aiming');
+        display.drawText(x, y++, '[f] to aim, press again to fire');
+        display.drawText(x, y++, '[h] to quick-heal with an item');
+        display.drawText(x, y++, '[i] to open inventory');
+        display.drawText(x, y++, '[l] to look around you');
+        display.drawText(x, y++, '[s] to use stat points');
+        display.drawText(x, y++, '[5] or [z] to wait a turn');
+        display.drawText(x, y++, '[?] to show this help screen');
         y ++;
         text = '--- press any key to continue ---';
-        display.drawText(Game._menuScreenWidth / 2 - text.length / 2, y++, text);
+        display.drawText(
+            (Game.getMapWidth() / 2) - (text.length / 2) + x, 
+            y++,
+            text
+        );
     },
     handleInput: function(inputType, inputData) {
         if (inputType === 'keydown')
@@ -1101,7 +1290,11 @@ Game.Screen.TargetBasedScreen.prototype.render = function(display) {
     // Render stars along the line.
     for (var i = 0; i < points.length; i++) {
         if (i == 0) {
-            display.drawText(points[i].x, points[i].y, '%b{rgba(255,165,0,0.3)}@');
+            display.drawText(
+                points[i].x + Game.getMapOffsetX(), 
+                points[i].y + Game.getMapOffsetY(), 
+                '%b{rgba(255,165,0,0.3)}@'
+            );
         } else {
             var map = this._player.getMap();
             var tile = map.getTile(points[i].x, points[i].y, this._player.getZ());
@@ -1114,12 +1307,20 @@ Game.Screen.TargetBasedScreen.prototype.render = function(display) {
                 tile = map.getEntityAt(points[i].x, points[i].y, this._player.getZ());
             }
             var foreground = tile.getForeground();
-            display.drawText(points[i].x, points[i].y, '%c{' + foreground + '}%b{rgba(255,165,0,0.3)}' + tile.getChar());
+            display.drawText(
+                points[i].x + Game.getMapOffsetX(), 
+                points[i].y + Game.getMapOffsetY(),
+                '%c{' + foreground + '}%b{rgba(255,165,0,0.3)}' + tile.getChar());
         }
     }
 
     // Render the caption at the bottom.
     this._caption = this._captionFunction(this._cursorX, this._cursorY);
+    display.drawText(
+        Game.getMapOffsetX() + 1,
+        Game.getScreenHeight() - 2,
+        "%c{rgb(0,220,220)}" + this._caption
+    );
 };
 
 Game.Screen.TargetBasedScreen.prototype.handleInput = function(inputType, inputData) {
@@ -1304,7 +1505,11 @@ Game.Screen.winScreen = {
             var g = Math.round(Math.random() * 255);
             var b = Math.round(Math.random() * 255);
             var background = ROT.Color.toRGB([r, g, b]);
-            display.drawText(2, i + 1, "%b{" + background + "}You win!");
+            display.drawText(
+                Game.getMapOffsetX() + 2, 
+                i + Game.getMapOffsetY() + 1, 
+                "%b{" + background + "}You win!"
+            );
         }
     },
     handleInput: function(inputType, inputData) {
@@ -1319,7 +1524,11 @@ Game.Screen.loseScreen = {
     render: function(display) {
         // Render our prompt to the screen
         for (var i = 0; i < 22; i++) {
-            display.drawText(2, i + 1, "%b{red}You lose! :(");
+            display.drawText(
+                Game.getMapOffsetX() + 2, 
+                i + Game.getMapOffsetY() + 1, 
+                "%b{red}You lose! :("
+            );
         }
     },
     handleInput: function(inputType, inputData) {

@@ -1,3 +1,5 @@
+/*jshint esversion: 8 */
+
 Game.MapGen = function(properties) {
     properties = properties || {};
     this._width = properties.width;
@@ -43,7 +45,7 @@ Game.MapGen.prototype.generateLevel = function(z) {
     this.bsp(1, 1, this._width-2, this._height-2, z);
     this.addDoors(z, 20);
     this.fillDeadEnds(z);
-    this.makeCorridors(z, 7);
+    this.makeCorridors(z);
     if (z > 0) {
         this.connectFloor(z);
     }
@@ -119,17 +121,20 @@ Game.MapGen.prototype.fillRoom = function(z, room, doors) {
 
 Game.MapGen.prototype.makeCorridors = function(z, maxCorridors) {
     var map = this._tiles[z];
-    maxCount = maxCorridors || 1000;
+    
     var count = 0;
     var rooms = this._rooms[z];
     Game.shuffle(rooms);
+    maxCorridors = maxCorridors || Math.floor(rooms.length / 3);
     //rooms.sort(rooms);
+    console.log("number of rooms: " + rooms.length);
     for (var i = 0; i < rooms.length; i++) {
         var room = rooms[i];
         var doors = this.getDoors(z, room);
-        if (doors && doors.length == 2) {
+        if (doors && doors.length >= 2) {
             this.makeCorridor(z, room, doors);
             this._rooms[z].splice(i, 1);
+            i--;
             count++;
             if (count >= maxCorridors) {
                 return;
@@ -141,21 +146,39 @@ Game.MapGen.prototype.makeCorridors = function(z, maxCorridors) {
 
 Game.MapGen.prototype.makeCorridor = function(z, room, doors) {
     var map = this._tiles[z];
-    for (var i = 0; i < doors.length - 1; i++) {
-        var path = Game.findShortestPath(
-            this._tiles, z, doors[i].x, doors[i].y, doors[i+1].x, doors[i+1].y, true);
+    var paths = [];
+    var count = 0;
+    for (let i = 0; i < doors.length - 1; i++) {
+        let path = Game.findShortestPath(
+            this._tiles, z, 
+            doors[i].x, doors[i].y, 
+            doors[i+1].x, doors[i+1].y, 
+            true
+        );
         if (!path) {
-            //console.log('no path to make corridor!');
+            console.log('no path to make corridor!');
             return;
+        } else {
+            count++;
+            console.log("pushing path " + count);
+            paths.push(path);
         }
-            this.fillRoom(z, room, doors);
+    }
+
+    this.fillRoom(z, room, doors);
+
+    for (let i = 0; i < doors.length - 1; i++) {
         map[doors[i].x][doors[i].y] = Game.Tile.floorTile;
         map[doors[i+1].x][doors[i+1].y] = Game.Tile.floorTile;
-        for (var j = 1; j < path.length - 1; j++) {
+    }
+    for (let i = 0; i < paths.length; i++) {
+        let path = paths[i];
+        for (let j = 1; j < path.length - 1; j++) {
             //console.log("next step: (" + path[j].x + ", " + path[j].y);
             map[path[j].x][path[j].y] = Game.Tile.floorTile;
         }
-    }
+    } 
+        
 };
 
 Game.MapGen.prototype.getDoors = function(z, room) {

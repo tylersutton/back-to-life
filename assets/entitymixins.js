@@ -380,7 +380,7 @@ Game.EntityMixins.Destructible = {
     },
     increaseMaxHp: function(value) {
         // If no value was passed, default to 10.
-        value = value || 5;
+        value = value || 10;
         // Add to both max HP and HP.
         this._maxHp += value;
         this._hp += value;
@@ -795,11 +795,11 @@ Game.EntityMixins.ExperienceGainer = {
         // Determine what stats can be levelled up.
         this._statOptions = [];
         if (this.hasMixin('Attacker')) {
-            this._statOptions.push(['Increase attack value', this.increaseAttackValue]);
+            this._statOptions.push(['Increase attack value by 1', this.increaseAttackValue]);
         }
         if (this.hasMixin('Destructible')) {
-            this._statOptions.push(['Increase defense value', this.increaseDefenseValue]);   
-            this._statOptions.push(['Increase max health', this.increaseMaxHp]);
+            this._statOptions.push(['Increase defense value by 1', this.increaseDefenseValue]);   
+            this._statOptions.push(['Increase max health by 10', this.increaseMaxHp]);
         }
         //if (this.hasMixin('Sight')) {
         //    this._statOptions.push(['Increase sight range', this.increaseSightRadius]);
@@ -883,9 +883,9 @@ Game.EntityMixins.ExperienceGainer = {
                 this.giveExperience(Math.round(exp));
             }
         },
-        details: function() {
-            return [{key: 'lvl', value: this.getLevel()}];
-        }
+        //details: function() {
+            //return [{key: 'lvl', value: this.getLevel()}];
+        //}
     }
 };
 
@@ -927,7 +927,7 @@ Game.EntityMixins.MessageRecipient = {
     name: 'MessageRecipient',
     init: function(template) {
         this._messages = [];
-        this._maxMessages = 5;
+        this._maxMessages = Game.getMessageHeight();
         this._colors = [];
         this._minColor = 100;
         this._maxColor = 255;

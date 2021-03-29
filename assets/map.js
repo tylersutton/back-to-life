@@ -38,7 +38,7 @@ Game.Map.prototype.setupFov = function(z) {
     // Keep this in 'map' variable so that we don't lose it.
     var map = this;
     this._fov.push(
-        new ROT.FOV.DiscreteShadowcasting(function(x, y) {
+        new ROT.FOV.PreciseShadowcasting(function(x, y) {
             return map.getEntityAt(x, y, z) || (map.getTile(x, y, z) && map.getTile(x, y, z) != Game.Tile.nullTile && !map.getTile(x, y, z).isBlockingLight());
         }, {topology: 4}));
 };
