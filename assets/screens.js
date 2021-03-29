@@ -420,16 +420,39 @@ Game.Screen.playScreen = {
     },
     renderLooking: function(display) {
         // Draw a line from the start to the cursor.
-        var points = Game.getLine(
+        var points = Game.findShortestPath(
+            this._player.getMap()._tiles,
+            this._player.getZ(),
             this._player.getX(), 
             this._player.getY(),
             this._cursorX,
             this._cursorY
         );
+        if (!points) {
+            points = [];
+            var linePath = Game.getLine(
+                    this._player.getX(), 
+                    this._player.getY(),
+                    this._cursorX, 
+                    this._cursorY
+            );
+            for (let i = 1; i < linePath.length; i++) {
+                if (map.isExplored(points[i].x, points[i].y, this._player.getZ()) &&
+                        map.isEmptyFloor(
+                            linePath[i].x, 
+                            linePath[i].y, 
+                            this._player.getZ()
+                        )) {
+                    points.push(linePath[i]);
+                } else {
+                    break;
+                }
+            }
+        }
         var map = this._player.getMap();
         // Render stars along the line.
         for (var i = 1; i < points.length; i++) {
-            if (this._visibleCells[points[i].x + "," + points[i].y]) {
+            if (map.isExplored(points[i].x, points[i].y, this._player.getZ())) {
                 var tile = map.getTile(points[i].x, points[i].y, this._player.getZ());
                 var items = map.getItemsAt(points[i].x, points[i].y, this._player.getZ());
                 if (items) {
@@ -604,15 +627,40 @@ Game.Screen.playScreen = {
             let x = Math.floor(((inputData.clientX - Game._screenOffsetX) / Game._screenCellWidth)) - Game.getMapOffsetX();
             let y = Math.floor(((inputData.clientY - Game._screenOffsetY) / Game._screenCellHeight)) - Game.getMapOffsetY();
             
-            var path = Game.findShortestPath(map._tiles, this._player.getZ(), 
-                                             this._player.getX(), this._player.getY(), x, y);
+            var path = Game.findShortestPath(
+                    map._tiles, 
+                    this._player.getZ(), 
+                    this._player.getX(), 
+                    this._player.getY(),
+                    x, 
+                    y
+            );
+            if (!path) {
+                path = [];
+                var linePath = Game.getLine(
+                        this._player.getX(), 
+                        this._player.getY(),
+                        x, 
+                        y
+                );
+                for (let i = 1; i < linePath.length; i++) {
+                    if (map.isEmptyFloor(
+                            linePath[i].x, 
+                            linePath[i].y, 
+                            this._player.getZ()) ) {
+                        path.push(linePath[i]);
+                    } else {
+                        break;
+                    }
+                }
+            }
 
             const sleep = (milliseconds) => {
                 return new Promise(resolve => setTimeout(resolve, milliseconds));
             };
 
             const moveLoop = async (path) => {
-                for (var i = 1; i < path.length; i++) {
+                for (let i = 1; i < path.length; i++) {
                     await sleep(50);
                     if (this._gameEnded) {
                         return;
