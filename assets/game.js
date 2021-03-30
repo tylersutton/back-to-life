@@ -38,25 +38,35 @@ var Game = {
             fontSize: this._fontSize,
             bg: "rgb(0,0,0)",
             spacing: 1.2,
-            //forceSquareRatio: true,
             fontFamily: "Consolas, monospace"
         };
         this._display = new ROT.Display(options);
         this._display.getContainer().setAttribute('id', "game");
 
-        //document.querySelector("figure").appendChild(this._display.getContainer());
 	    // Create a helper function for binding to an event
 	    // and making it send it to the screen
         var game = this; // So that we don't lose this
-	    var bindEventToScreen = function(event) {
+	    var lastMove = 0;
+document.addEventListener('mousemove', function() {
+    
+});
+        var bindEventToScreen = function(event) {
 	        window.addEventListener(event, function(e) {
 	            // When an event is received, send it to the
 	            // screen if there is one
-	            if (game._currentScreen !== null) {
+	            // also need to throttle mousemove events for performance
+                if (event === 'mousemove') {
+                    // do nothing if last move was less than 40 ms ago
+                    if(Date.now() - lastMove > 40 && game._currentScreen !== null) {
+                        // Send the event type and data to the screen
+	                    game._currentScreen.handleInput(event, e);
+                        lastMove = Date.now();
+                    }
+                } else if (game._currentScreen !== null) {
 	                // Send the event type and data to the screen
 	                game._currentScreen.handleInput(event, e);
                     
-	            }
+	            } 
 	        });
 	    };
 	    // Bind keyboard input events
@@ -66,12 +76,12 @@ var Game = {
         bindEventToScreen('click');
         bindEventToScreen('mousemove');
         window.addEventListener('resize', this.resizeDisplay);
+        window.addEventListener('fullscreenchange', this.resizeDisplay);
 
         // setup game audio
         this.audio = new Game.Audio();
 	},
     resizeDisplay: function() {
-        //console.log("WOAH WOAH WOAH");
         var currentWidth = Game.getDisplay().getContainer().clientWidth;
         var currentHeight = Game.getDisplay().getContainer().clientHeight;
 

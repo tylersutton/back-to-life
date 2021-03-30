@@ -50,11 +50,9 @@ Game.Repository.prototype.createRandom = function(z, includedMixins, excludedMix
     var validKeys = [];
     var i;
     for (var key in this._randomTemplates) {
-        //console.log("template name: " + this._randomTemplates[key].name);
         if (this._randomTemplates[key].name) {
             var minZ = this._randomTemplates[key].minZLevel || 0;
             var maxZ = this._randomTemplates[key].maxZLevel || 1000;
-            //console.log("name: " + this._randomTemplates[key].name + ", minZ: " + minZ + ", maxZ: " + maxZ);
             if (!mixinsRequired && !mixinsExcluded && 
                     z >= minZ && z <= maxZ && 
                     (!argRequired || this._randomTemplates[key][arg])) {
@@ -63,12 +61,10 @@ Game.Repository.prototype.createRandom = function(z, includedMixins, excludedMix
                 var valid = true;
                 // key is invalid if z is outside bounds
                 if (z < minZ || z > maxZ) {
-                    //console.log("z outside bounds");
                     valid = false;
                 }
                 // key is invalid if missing arg
                 if (argRequired && !this._randomTemplates[key][arg]) {
-                    //console.log("did not match arg");
                     valid = false;
                 }
                 // key is invalid if none of the required mixins are present
@@ -80,7 +76,6 @@ Game.Repository.prototype.createRandom = function(z, includedMixins, excludedMix
                         }
                     }
                     if (!found) {
-                        //console.log("did not find required mixin");
                         valid = false;
                     }
                 }
@@ -88,15 +83,12 @@ Game.Repository.prototype.createRandom = function(z, includedMixins, excludedMix
                 if (excludedMixins) {
                     for (i = 0; i < excludedMixins.length; i++) {
                         if (this._randomTemplates[key].mixins.includes(excludedMixins[i])) {
-                            //console.log("found excluded mixin");
                             valid = false;
                         }
                     }
                 }
                 if (valid) {
                     validKeys.push(key);
-                } else {
-                    //console.log("no valid candidates found");
                 }
             }
         }

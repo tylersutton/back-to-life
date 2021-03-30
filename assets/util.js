@@ -129,7 +129,6 @@ Game.findShortestPath = function(map3d, z, x1, y1, x2, y2, orthogonalOnly) {
                                 crawl = pred[crawl.x][crawl.y];
                             }
                             path.reverse();
-                            //console.log(path);
                             return path;
                         }
                     }

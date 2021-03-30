@@ -6,7 +6,6 @@ Game.Map = function(tiles) {
     // on the length of the dimensions of
     // the tiles array
     this._depth = tiles.length;
-    //console.log("map depth: " + this._depth);
     this._width = tiles[0].length;
     this._height = tiles[0][0].length;
     this._fov = [];
@@ -33,18 +32,6 @@ Game.Map.prototype.getDepth = function() {
     return this._depth;
 };
 
-
-/*
-Game.Map.prototype.setupFov = function(z) {
-    // Keep this in 'map' variable so that we don't lose it.
-    var map = this;
-    this._fov.push(
-        new ROT.FOV.PreciseShadowcasting(function(x, y) {
-            return map.getEntityAt(x, y, z) || (map.getTile(x, y, z) && map.getTile(x, y, z) != Game.Tile.nullTile && !map.getTile(x, y, z).isBlockingLight());
-        }, {topology: 4}));
-};
-*/
-
 Game.Map.prototype.setupFov = function(z) {
     var fov = [];
     for (let x = 0; x < this._width; x++) {
@@ -64,8 +51,6 @@ Game.Map.prototype.setupFov = function(z) {
 };
 
 Game.Map.prototype.computeFov = function(centerX, centerY, z, radius, callback) {
-    //console.log("computing fov");
-    //console.table(this._fov[z]);
     let x;
     let y;
 
@@ -84,7 +69,7 @@ Game.Map.prototype.computeFov = function(centerX, centerY, z, radius, callback) 
     oy = centerY + 0.5;
     for(i = 0; i < radius; i++)
     {
-      visibleCallback(Math.floor(ox), Math.floor(oy));
+      visibleCallback(Math.floor(ox), Math.floor(oy), ((radius - i) / radius));
       if(!this._fov[z][Math.floor(ox)][Math.floor(oy)]()) {
         return;
       }
@@ -100,9 +85,6 @@ Game.Map.prototype.getTile = function(x, y, z) {
     if (x < 0 || x >= this._width || y < 0 || y >= this._height || z < 0 || z >= this._depth || !this._tiles[z][x][y]) {
         return Game.Tile.nullTile;
     } else {
-        if (this._tiles[z][x][y] && typeof(this._tiles[z][x][y]) != "object") {
-            //console.log("tile type: " + typeof(this._tiles[z][x][y]));
-        }
         return this._tiles[z][x][y] || Game.Tile.nullTile;
     }
 };
@@ -170,10 +152,6 @@ Game.Map.prototype.getPlayer = function() {
     return this._player;
 };
 
-//Game.Map.prototype.getPlayerEntity = function() {
-    //return this._entities[0];
-//}
-
 Game.Map.prototype.addEntity = function(entity) {
     // Make sure the entity's position is within bounds
     if (entity.getX() < 0 || entity.getX() >= this._width ||
@@ -216,33 +194,20 @@ Game.Map.prototype.getEntitiesWithinRadius = function(centerX, centerY, z, radiu
     for (var key in this._entities) {
         it++;
         var entity = this._entities[key];
-        /*
-        if (entity &&
-            (!typeof(entity) === 'function') &&  
-            entity.getX() >= leftX &&
-            entity.getX() <= rightX && 
-            entity.getY() >= topY &&
-            entity.getY() <= bottomY &&
-            entity.getZ() == z) 
-        */
         if (!entity) {
-            //console.log("entity is undefined");
         } else if (typeof(entity) === 'function') {
-            //console.log("entity is a function");
+            // don't want this
         } else if (entity.getX() < leftX ||
                     entity.getX() > rightX ||
                     entity.getY() < topY ||
                     entity.getY() > bottomY ||
                     entity.getZ() !== z) {
-            //console.log("entity is not within radius");
+            // don't want this either
         }
         else {
             results.push(entity);
         }
     }
-    //console.log("number of entities tested: " + it);
-    //var count = results ? results.length : 0;
-    //console.log("num of entities within radius: " + results.length);
     return results;
 };
 
@@ -293,10 +258,6 @@ Game.Map.prototype.getItemPosition = function(item) {
     if (this._items) {
         for (var key in this._items) {
             if (this._items[key].includes(item)) {
-                //console.log("key: " + key);
-                if (item.getName() != 'soul vial') {
-                    //console.log("name: " + item.getName());
-                }
                 return key.split(',');
             }
         }
@@ -345,4 +306,126 @@ Game.Map.prototype.addItem = function(x, y, z, item) {
 Game.Map.prototype.addItemAtRandomPosition = function(item, z) {
     var position = this.getRandomFloorPosition(z);
     this.addItem(position.x, position.y, position.z, item);
+};
+
+// Finds shortest path between two cells in 2d map
+// using breadth-first search
+Game.Map.prototype.findShortestPath = function(z, x1, y1, x2, y2, orthogonalOnly, requireExplored) {
+    var ortho = orthogonalOnly || false;
+    var visited = [];
+    var dist = [];
+    var pred = [];
+
+    var i, j;
+    for (i = 0; i < this._width; i++) {
+        visited.push([]);
+        dist.push([]);
+        pred.push([]);
+        for (j = 0; j < this._height; j++) {
+            visited[i][j] = false;
+            dist[i][j] = 1000000;
+            pred[i][j] = {x: -1, y: -1};
+        }
+    }
+    var q = new Queue();
+    q.enqueue({x: x1, y: y1});
+    visited[x1][y1] = true;
+    dist[x1][y1] = 0;
+
+    while (!q.isEmpty()) {
+        q.sort(dist);
+        var v = q.dequeue();
+        for (i = v.x - 1; i <= v.x + 1; i++) {
+            for (j = v.y - 1; j <= v.y + 1; j++) {
+                if (((!ortho && !(i == v.x && j == v.y)) || 
+                        // confusing way to do xor
+                        (ortho && (i == v.x ? j != v.y : j == v.y))) && 
+                        i >= 0 && i < this._width && j >= 0 && j < this._height) {
+                    if (!visited[i][j] && 
+                        this.getTile(i, j, z).isWalkable() &&
+                            (!requireExplored || this.isExplored(i, j, z))) {
+                        visited[i][j] = true;
+                        if ((i != v.x) && (j != v.y)) {
+                            dist[i][j] = dist[v.x][v.y] + 1000000;
+                        }
+                        else {
+                            dist[i][j] = dist[v.x][v.y] + 1;
+                        }
+                        pred[i][j] = {x: v.x, y: v.y};
+                        q.enqueue({x: i, y: j});
+
+                        if (i == x2 && j == y2) {
+                            // backtrack from dest to source and record path
+                            path = [];
+                            crawl = {x: i, y: j};
+                            path.push(crawl);
+                            while(!(crawl.x == x1 && crawl.y == y1)) {
+                                path.push(pred[crawl.x][crawl.y]);
+                                crawl = pred[crawl.x][crawl.y];
+                            }
+                            path.reverse();
+                            return path;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return null;
+};
+
+// Finds shortest path between two cells in 2d map
+// using breadth-first search
+Game.Map.prototype.findClosestWalkableTile = function(z, x1, y1, requireExplored) {
+    var visited = [];
+    var dist = [];
+    var pred = [];
+
+    var i, j;
+    for (i = 0; i < this._width; i++) {
+        visited.push([]);
+        dist.push([]);
+        pred.push([]);
+        for (j = 0; j < this._height; j++) {
+            visited[i][j] = false;
+            dist[i][j] = 1000000;
+            pred[i][j] = {x: -1, y: -1};
+        }
+    }
+    var q = new Queue();
+    q.enqueue({x: x1, y: y1});
+    visited[x1][y1] = true;
+    dist[x1][y1] = 0;
+
+    while (!q.isEmpty()) {
+        q.sort(dist);
+        var v = q.dequeue();
+        for (i = v.x - 1; i <= v.x + 1; i++) {
+            for (j = v.y - 1; j <= v.y + 1; j++) {
+                if ((!(i == v.x && j == v.y)) && 
+                        i >= 0 && i < this._width && j >= 0 && j < this._height) {
+                    if (!visited[i][j]) {
+                        visited[i][j] = true;
+                        if ((i != v.x) && (j != v.y)) {
+                            dist[i][j] = dist[v.x][v.y] + 1.41;
+                        }
+                        else {
+                            dist[i][j] = dist[v.x][v.y] + 1;
+                        }
+                        pred[i][j] = {x: v.x, y: v.y};
+                        q.enqueue({x: i, y: j});
+
+                        if (this.getTile(i, j, z).isWalkable() && 
+                                !this.getEntityAt(i, j, z) && 
+                                (!requireExplored || this.isExplored(i, j, z))) {
+                            // backtrack from dest to source and record path
+                            return {x: i, y: j};
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return null;
 };

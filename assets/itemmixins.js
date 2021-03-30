@@ -96,7 +96,7 @@ Game.ItemMixins.Equippable = {
 Game.ItemMixins.Scroll = {
     name: 'Scroll',
     init: function(template) {
-        this._identified = true; //template['identified'] || false;
+        this._identified = true;
     },
     identify: function() {
         this._identified = true;

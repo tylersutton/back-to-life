@@ -11,7 +11,7 @@ Game.Promise = function() {
 
 Game.Promise.prototype.then = function(ok) {
 	this._callbacks.ok = ok;
-	this._thenPromise = new Promise();
+	this._thenPromise = new Game.Promise();
 	return this._thenPromise;
 };
 
@@ -19,7 +19,7 @@ Game.Promise.prototype.fulfill = function(value) {
 	if (!this._callbacks.ok) { return; }
 
 	var result = this._callbacks.ok(value);
-	if (result instanceof Promise) {
+	if (result instanceof Game.Promise) {
 		result.then(function(value) { 
 			this._thenPromise.fulfill(value);
 		}.bind(this));

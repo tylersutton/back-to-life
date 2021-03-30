@@ -35,7 +35,7 @@ Game.Screen.startScreen = {
         var descLength = 35;
         var descLength2 = 19;
         var prompt = "Press [Enter] to start!";
-        var titleHeight = 0;
+        var titleHeight = Game.getScreenHeight() / 2 - 10;
         display.drawText(Math.floor((Game._screenWidth / 2) - (descLength / 2)),
                         titleHeight++, 
                         "%c{orange}" + description1);
@@ -110,6 +110,7 @@ Game.Screen.playScreen = {
     _cursorX: null,
     _cursorY: null,
     _looking: null,
+    _selectedButton: null,
     _visibleCells: null, // cached for looking purposes
     enter: function() {  
         //place map in correct location on display
@@ -196,27 +197,26 @@ Game.Screen.playScreen = {
 
         // This object will keep track of all visible map cells
         var visibleCells = {};
+        var lightLevel = {};
         var map = this._player.getMap();
         var currentDepth = this._player.getZ();
         if (currentDepth < map._depth - 1 && map.getTile(1, 1, currentDepth+1) == Game.Tile.nullTile) {
-            //console.log("adding extra floor");
             this._generator.generateLevel(currentDepth+1);
             this._player.getMap()._tiles.push(this._generator.getTiles()[currentDepth+1]);
             this._player.getMap().populateDungeon(currentDepth+1, this.player);
             this._player.getMap().setupFov(currentDepth+1);
         }
         // Find all visible cells and update the object
-        //console.log("calling computeFov from playscreen");
         map.computeFov(
             this._player.getX(), 
             this._player.getY(),
             this._player.getZ(),
             this._player.getSightRadius(), 
-            function(x, y) {
+            function(x, y, visibility) {
                 visibleCells[x + "," + y] = true;
                 map.setExplored(x, y, currentDepth, true);
+                lightLevel[x + ',' + y] = visibility;
             });
-        //console.table(tmpFov);
         // Render the explored map cells
         for (var x = 0; x < mapWidth; x++) {
             for (var y = 0; y < mapHeight; y++) {
@@ -227,19 +227,20 @@ Game.Screen.playScreen = {
                     // The foreground color becomes dark gray if the tile has been
                     // explored but is not visible
                     var foreground = visibleCells[x + ',' + y] ? tile.getForeground() :
-                        Game.scaleRGB(tile.getForeground(), 0.4);
+                        Game.scaleRGB(tile.getForeground(), 0.3);
                     var background = visibleCells[x + ',' + y] ? tile.getBackground() :
-                        Game.scaleRGB(tile.getBackground(), 0.4);
-                    if (this._shadows[currentDepth][x][y] && !tile.isDoor()) {
-                        background = Game.scaleRGB(background, this._shadows[currentDepth][x][y]);
-                        foreground = Game.scaleRGB(foreground, this._shadows[currentDepth][x][y]);
+                        Game.scaleRGB(tile.getBackground(), 0.3);
+                    if (this._shadows[currentDepth][x][y] && lightLevel[x + ',' + y] && !tile.isDoor()) {
+                        var scaleFactor = 0.3 + (lightLevel[x + ',' + y] * this._shadows[currentDepth][x][y] * 0.7);
+                        background = Game.scaleRGB(background, scaleFactor);
+                        foreground = Game.scaleRGB(foreground, scaleFactor);
+                    }
+                    var items = map.getItemsAt(x, y, currentDepth);
+                    if (items) {
+                        tile = items[items.length - 1];
+                        foreground = tile.getForeground();
                     }
                     if (GOD_MODE || visibleCells[x + ',' + y]) {
-                        var items = map.getItemsAt(x, y, currentDepth);
-                        if (items) {
-                            tile = items[items.length - 1];
-                            foreground = tile.getForeground();
-                        }
                         if (map.getEntityAt(x, y, currentDepth)) {
                             tile = map.getEntityAt(x, y, currentDepth);
                             foreground = tile.getForeground();
@@ -303,12 +304,11 @@ Game.Screen.playScreen = {
         // Render player description
         var playerDesc = this._player.getRepresentation() + 
                 ': ' + this._player.describeA(false);
-                //this._player.getDetails();
         display.drawText(0, 0, playerDesc);
         
         // Render player health
         var playerHP = 'Health: ' + this._player.getHp() + '/' + this._player.getMaxHp();
-        var hpBarLength = Math.floor(Game.getInfoBarWidth() * this._player.getHp() / this._player.getMaxHp());
+        var hpBarLength = Game.getInfoBarWidth() * this._player.getHp() / this._player.getMaxHp();
         display.drawText(
             Math.floor((Game.getInfoBarWidth() / 2) - (playerHP.length / 2)), 
             1, 
@@ -317,10 +317,14 @@ Game.Screen.playScreen = {
             'black'
         );
         for (let i = 0; i < Game.getInfoBarWidth(); i++) {
-            if (i < hpBarLength) {
-                display.drawOver(i, 1, '', null, "rgb(125,0,0)");
-            } else {
+            
+            if (i > hpBarLength) {
                 display.drawOver(i, 1, '', null, "rgb(60,0,0)");
+            } else if (hpBarLength - i < 1) {
+                var redVal = Math.floor(60 + ((125-60) * (hpBarLength - i)));
+                display.drawOver(i, 1, '', null, "rgb(" + redVal + ",0,0)");
+            } else {
+                display.drawOver(i, 1, '', null, "rgb(125,0,0)");
             }
         }
        
@@ -338,12 +342,7 @@ Game.Screen.playScreen = {
         // Render player's level bar
         var levelBar = '=========>';
         var levelBarLength = 10;
-        /*
-        var statPoints = '';
-        if (this._player.getStatPoints() > 0) {
-            statPoints = '%c{white}[%c{rgb(50,255,50)}s%c{white}]->stat pts: ' + player.getStatPoints();
-        }
-        */
+
         var n = Math.round(this._player.getCurrentLevelProgress() * levelBarLength - 1);
         var temp = levelBar.split('');
         temp.splice(0, levelBarLength - n - 1);
@@ -378,11 +377,18 @@ Game.Screen.playScreen = {
         var width = Game.getMapWidth();
         var x = Game.getMapOffsetX() + 1;
         var y = Game.getScreenHeight() - 1;
+        var buttonColor = 'rgb(0,10,50)';
+        var highlightedButtonColor = 'rgb(40,40,140)';
         // render help button
         var helpButton = "%c{white}Help (%c{rgb(255,255,0)}?%c{white})";
         display.drawText(x, y, helpButton);
         for (let i = x - 1; i < x + helpButton.length - 36 + 1; i++) {
-                display.drawOver(i, y, '', null, 'rgb(0,10,50)');
+                if (this._selectedButton == 'helpButton') {
+                    display.drawOver(i, y, '', null, highlightedButtonColor);
+                } else {
+                    display.drawOver(i, y, '', null, buttonColor);
+                }
+                
         }
         x += helpButton.length - 36 + 4;
 
@@ -390,7 +396,11 @@ Game.Screen.playScreen = {
         var inventoryButton = "%c{rgb(255,255,0)}I%c{white}nventory";
         display.drawText(x, y, inventoryButton);
         for (let i = x - 1; i < x + inventoryButton.length - 27 + 1; i++) {
-            display.drawOver(i, y, '', null, 'rgb(0,10,50)');
+            if (this._selectedButton == 'inventoryButton') {
+                display.drawOver(i, y, '', null, highlightedButtonColor);
+            } else {
+                display.drawOver(i, y, '', null, buttonColor);
+            }
         }
         x += inventoryButton.length - 27 + 4;
 
@@ -398,7 +408,11 @@ Game.Screen.playScreen = {
         var lookButton = "%c{rgb(255,255,0)}L%c{white}ook";
         display.drawText(x, y, lookButton);
         for (let i = x - 1; i < x + lookButton.length - 27 + 1; i++) {
-            display.drawOver(i, y, '', null, 'rgb(0,10,50)');
+            if (this._selectedButton == 'lookButton') {
+                display.drawOver(i, y, '', null, highlightedButtonColor);
+            } else {
+                display.drawOver(i, y, '', null, buttonColor);
+            }
         }
         x += lookButton.length - 27 + 4;
 
@@ -412,7 +426,11 @@ Game.Screen.playScreen = {
         
         for (let i = x - 1; i < x + statPoints.length - 27 + 1; i++) {
             if (this._player.getStatPoints() > 0) {
-                display.drawOver(i, y, '', null, 'rgb(0,100,0)');
+                if (this._selectedButton == 'statPointsButton') {
+                    display.drawOver(i, y, '', null, highlightedButtonColor);
+                } else {
+                    display.drawOver(i, y, '', null, buttonColor);
+                }
             } else {
                 display.drawOver(i, y, '', null, 'rgb(30,30,30)');
             } 
@@ -420,59 +438,105 @@ Game.Screen.playScreen = {
     },
     renderLooking: function(display) {
         // Draw a line from the start to the cursor.
-        var points = Game.findShortestPath(
-            this._player.getMap()._tiles,
+        var target = null;
+        var points = this._player.getMap().findShortestPath(
             this._player.getZ(),
             this._player.getX(), 
             this._player.getY(),
             this._cursorX,
-            this._cursorY
+            this._cursorY,
+            false,
+            true // require path to be on explored tiles only
         );
         if (!points) {
-            points = [];
-            var linePath = Game.getLine(
+            target = this._player.getMap().findClosestWalkableTile(
+                this._player.getZ(),
+                this._cursorX,
+                this._cursorY,
+                true // require path to be on explored tiles only
+            );
+            if (target) {
+                points = this._player.getMap().findShortestPath(
+                    this._player.getZ(),
                     this._player.getX(), 
                     this._player.getY(),
-                    this._cursorX, 
-                    this._cursorY
-            );
-            for (let i = 1; i < linePath.length; i++) {
-                if (map.isExplored(points[i].x, points[i].y, this._player.getZ()) &&
-                        map.isEmptyFloor(
-                            linePath[i].x, 
-                            linePath[i].y, 
-                            this._player.getZ()
-                        )) {
-                    points.push(linePath[i]);
-                } else {
-                    break;
-                }
+                    target.x,
+                    target.y,
+                    false,
+                    true // require path to be on explored tiles only
+                );
             }
         }
         var map = this._player.getMap();
         // Render stars along the line.
-        for (var i = 1; i < points.length; i++) {
-            if (map.isExplored(points[i].x, points[i].y, this._player.getZ())) {
-                var tile = map.getTile(points[i].x, points[i].y, this._player.getZ());
-                var items = map.getItemsAt(points[i].x, points[i].y, this._player.getZ());
-                if (items) {
-                    tile = items[items.length - 1];
+        if (points) {
+            for (var i = 1; i < points.length; i++) {
+                if (map.isExplored(points[i].x, points[i].y, this._player.getZ())) {
+                    var tile = map.getTile(points[i].x, points[i].y, this._player.getZ());
+                    if (this._visibleCells[points[i].x + ',' + points[i].y]) {
+                        var items = map.getItemsAt(points[i].x, points[i].y, this._player.getZ());
+                        if (items) {
+                            tile = items[items.length - 1];
+                        }
+                        if (map.getEntityAt(points[i].x, points[i].y, this._player.getZ())) {
+                            tile = map.getEntityAt(points[i].x, points[i].y, this._player.getZ());
+                        }
+                    }
+                    var foreground = tile.getForeground();
+                    if (i == points.length - 1) {
+                        if (points[i].x == this._cursorX &&
+                                points[i].y == this._cursorY) {
+                            // if cursor is on path, highlight cursor there
+                            display.drawText(
+                                points[i].x + Game.getMapOffsetX(), 
+                                points[i].y + Game.getMapOffsetY(),
+                                '%c{rgb(100,100,100)}%b{rgba(255,255,255,0.9)}' + tile.getChar()
+                            );
+                        } else {
+                            // else, render the end of path normally...
+                            display.drawText(
+                                points[i].x + Game.getMapOffsetX(), 
+                                points[i].y + Game.getMapOffsetY(),
+                                '%c{' + foreground + '}%b{rgba(255,165,0,0.3)}' + tile.getChar()
+                            );
+                            // ...and then highlight cursor
+                            if (this._player.getMap().isExplored(
+                                    this._cursorX, 
+                                    this._cursorY, 
+                                    this._player.getZ()
+                                )) {
+                                display.drawText(
+                                    this._cursorX + Game.getMapOffsetX(), 
+                                    this._cursorY + Game.getMapOffsetY(),
+                                    '%c{rgb(100,100,100)}%b{rgba(255,255,255,0.9)}' + 
+                                        this._player.getMap().getTile(
+                                                this._cursorX, 
+                                                this._cursorY, 
+                                                this._player.getZ()).getChar()
+                                        );
+                            } else {
+                                display.drawText(
+                                    this._cursorX + Game.getMapOffsetX(), 
+                                    this._cursorY + Game.getMapOffsetY(),
+                                    '%c{rgb(100,100,100)}%b{rgba(255,255,255,0.9)}?'
+                                );
+                            }
+                            
+                        }
+                        
+                    } else {
+                        display.drawText(
+                            points[i].x + Game.getMapOffsetX(), 
+                            points[i].y + Game.getMapOffsetY(),
+                            '%c{' + foreground + '}%b{rgba(255,165,0,0.3)}' + tile.getChar()
+                        );
+                    }
+                    
                 }
-                if (map.getEntityAt(points[i].x, points[i].y, this._player.getZ())) {
-                    tile = map.getEntityAt(points[i].x, points[i].y, this._player.getZ());
-                }
-                var foreground = tile.getForeground();
-                console.log("tryna draw text");
-                display.drawText(
-                    points[i].x + Game.getMapOffsetX(), 
-                    points[i].y + Game.getMapOffsetY(),
-                    '%c{' + foreground + '}%b{rgba(255,165,0,0.3)}' + tile.getChar()
-                );
             }
         }
     },
     moveCursor: function(dx, dy) {
-        console.log("mouse movin");
         // Make sure we stay within bounds.
         var newCursorX = Math.max(0, Math.min(this._cursorX + dx, Game.getMapWidth()));
         // We have to save the last line for the caption.
@@ -533,7 +597,7 @@ Game.Screen.playScreen = {
                 this.move(1, 1, 0);
             } else if ([49, 97].includes(inputData.keyCode)) { // down-left/both 1's
                 this.move(-1, 1, 0);
-            } else if (inputData.key === 'z' || [53, 101].includes(inputData.keyCode)) { // wait
+            } else if (inputData.key === '.' || [53, 101].includes(inputData.keyCode)) { // wait
                 this.move(0, 0, 0);   
             } else if (inputData.key === 'Enter') {
                 var tile = map.getTile(
@@ -604,80 +668,152 @@ Game.Screen.playScreen = {
                 this._looking = false;
                 return;
             }
-            //var keyChar = String.fromCharCode(inputData.charCode);
-                // Not a valid key
         } else if (inputType === 'mousemove') {
-            let x = Math.floor(((inputData.clientX - Game._screenOffsetX) / Game._screenCellWidth) - Game.getMapOffsetX());
-            let y = Math.floor(((inputData.clientY - Game._screenOffsetY) / Game._screenCellHeight) - Game.getMapOffsetY());
+            let screenX = Math.floor((inputData.clientX - Game._screenOffsetX) / Game._screenCellWidth);
+            let screenY = Math.floor((inputData.clientY - Game._screenOffsetY) / Game._screenCellHeight);
+            
+            let x = screenX - Game.getMapOffsetX();
+            let y = screenY - Game.getMapOffsetY();
+
             if (x >= 0 && x < Game.getMapWidth() &&
-                    y >= 0 && y < Game.getMapWidth()) {
+                    y >= 0 && y < Game.getMapHeight()) {
                 this._looking = true;
                 if (x !== this._cursorX || y !== this._cursorY) {
                     this.moveCursorTo(x, y);
                     Game.refresh();
                 }
             } else {
+                if (screenX >= Game.getMapOffsetX() &&
+                        screenX < Game.getMapOffsetX() + 10 &&
+                        screenY == Game.getScreenHeight() - 1) {
+                    // highlight the help button
+                    this._selectedButton = 'helpButton';
+                } else if (screenX >= Game.getMapOffsetX() + 12 &&
+                        screenX < Game.getMapOffsetX() + 23 &&
+                        screenY == Game.getScreenHeight() - 1) {
+                    // highlight the inventory button
+                    this._selectedButton = 'inventoryButton';
+                } else if (screenX >= Game.getMapOffsetX() + 25 &&
+                        screenX < Game.getMapOffsetX() + 31 &&
+                        screenY == Game.getScreenHeight() - 1) {
+                    // highlight the look button
+                    this._selectedButton = 'lookButton';
+                } else if (screenX >= Game.getMapOffsetX() + 33 &&
+                        screenX < Game.getMapOffsetX() + 47 &&
+                        screenY == Game.getScreenHeight() - 1) {
+                    // highlight the stat points button
+                    this._selectedButton = 'statPointsButton';
+                }
+                else {
+                    this._selectedButton = null;
+                }
                 this._looking = false;
                 Game.refresh();
             }
             
         } 
         else if (inputType === 'click') {
-            // console.log("click happened");
-            let x = Math.floor(((inputData.clientX - Game._screenOffsetX) / Game._screenCellWidth)) - Game.getMapOffsetX();
-            let y = Math.floor(((inputData.clientY - Game._screenOffsetY) / Game._screenCellHeight)) - Game.getMapOffsetY();
+            let screenX = Math.floor((inputData.clientX - Game._screenOffsetX) / Game._screenCellWidth);
+            let screenY = Math.floor((inputData.clientY - Game._screenOffsetY) / Game._screenCellHeight);
             
-            var path = Game.findShortestPath(
-                    map._tiles, 
-                    this._player.getZ(), 
-                    this._player.getX(), 
-                    this._player.getY(),
-                    x, 
-                    y
-            );
-            if (!path) {
-                path = [];
-                var linePath = Game.getLine(
-                        this._player.getX(), 
-                        this._player.getY(),
-                        x, 
-                        y
+            let x = screenX - Game.getMapOffsetX();
+            let y = screenY - Game.getMapOffsetY();
+            
+            if (x >= 0 && x < Game.getMapWidth() &&
+                y >= 0 && y < Game.getMapHeight()) {
+                var path = this._player.getMap().findShortestPath(
+                    this._player.getZ(), this._player.getX(), this._player.getY(),
+                    x, y, false, true // require use of explored tiles only
                 );
-                for (let i = 1; i < linePath.length; i++) {
-                    if (map.isEmptyFloor(
-                            linePath[i].x, 
-                            linePath[i].y, 
-                            this._player.getZ()) ) {
-                        path.push(linePath[i]);
+                if (!path) {
+                    var target = this._player.getMap().findClosestWalkableTile(
+                        this._player.getZ(), x, y, true // require path to be on explored tiles only
+                    );
+                    if (target) {
+                        path = this._player.getMap().findShortestPath(
+                            this._player.getZ(), this._player.getX(), this._player.getY(),
+                            target.x, target.y, false, true // require path to be on explored tiles only
+                        );
+                    }
+                }
+    
+                const sleep = (milliseconds) => {
+                    return new Promise(resolve => setTimeout(resolve, milliseconds));
+                };
+    
+                const moveLoop = async (path) => {
+                    for (let i = 1; i < path.length; i++) {
+                        await sleep(35);
+                        if (this._gameEnded) {
+                            return;
+                        }
+                        var entities = map.getEntitiesWithinRadius(
+                                path[i].x, 
+                                path[i].y, 
+                                this._player.getZ(), 
+                                1
+                        );
+                        var blocked = (!entities || entities.length > 1);
+                        this.moveTo(path[i].x, path[i].y, this._player.getZ());
+                        if (blocked || this._player._forceManual) {
+                            return;
+                        }
+                    }
+                };
+                if (path) {
+                    moveLoop(path);
+                    this._looking = false; 
+                }
+                else {
+                    Game.sendMessage(this._player, "You can't move there!");
+                }
+            } else { // check if a button was clicked
+                if (screenX >= Game.getMapOffsetX() &&
+                        screenX < Game.getMapOffsetX() + 10 &&
+                        screenY == Game.getScreenHeight() - 1) {
+                    // setup the help screen
+                    console.log("loading helpScreen");
+                    this.setSubScreen(Game.Screen.helpScreen);
+                    this._selectedButton = null;
+                    return;
+                } else if (screenX >= Game.getMapOffsetX() + 12 &&
+                        screenX < Game.getMapOffsetX() + 23 &&
+                        screenY == Game.getScreenHeight() - 1) {
+                    // setup the inventory screen
+                    if (this._player.getItems().filter(function(x){return x;}).length === 0) {
+                        // If the player has no items, send a message and don't take a turn
+                        Game.sendMessage(this._player, "You're not carrying anything.");
+                        Game.refresh();
                     } else {
-                        break;
+                        // Show the inventory
+                        Game.Screen.inventoryScreen.setup(this._player, this._player.getItems());
+                        this.setSubScreen(Game.Screen.inventoryScreen);
                     }
+                    this._looking = false;
+                    this._selectedButton = null;
+                    return;
+                } else if (screenX >= Game.getMapOffsetX() + 25 &&
+                        screenX < Game.getMapOffsetX() + 31 &&
+                        screenY == Game.getScreenHeight() - 1) {
+                    // setup the look screen
+                    Game.sendMessage(this._player, "You look around. Press [Esc] to cancel.");
+                    Game.Screen.lookScreen.setup(this._player,
+                        this._player.getX(), this._player.getY());
+                    this.setSubScreen(Game.Screen.lookScreen);
+                    this._looking = false;
+                    this._selectedButton = null;
+                    return;
+                } else if (screenX >= Game.getMapOffsetX() + 33 &&
+                        screenX < Game.getMapOffsetX() + 47 &&
+                        screenY == Game.getScreenHeight() - 1) {
+                    // setup the stat screen
+                    if (this._player.getStatPoints() > 0) {
+                        this._player.useStatPoints();
+                    }
+                    this._looking = false;
+                    this._selectedButton = null;
+                    return;
                 }
-            }
-
-            const sleep = (milliseconds) => {
-                return new Promise(resolve => setTimeout(resolve, milliseconds));
-            };
-
-            const moveLoop = async (path) => {
-                for (let i = 1; i < path.length; i++) {
-                    await sleep(50);
-                    if (this._gameEnded) {
-                        return;
-                    }
-                    var blocked = map.getEntityAt(path[i].x, path[i].y, this._player.getZ()) ? true: false;
-                    this.moveTo(path[i].x, path[i].y, this._player.getZ());
-                    if (blocked) {
-                        return;
-                    }
-                }
-            };
-            if (path) {
-                moveLoop(path);
-                this._looking = false; 
-            }
-            else {
-                Game.sendMessage(this._player, "You can't move there!");
             }
         }
     },
@@ -692,7 +828,6 @@ Game.Screen.playScreen = {
         var newY = this._player.getY() + dY;
         var newZ = this._player.getZ() + dZ;
         if (dZ != 0) {
-            //console.log("z is changing!!!");
         }
         // Try to move to the new cell
         this._player.tryMove(newX, newY, newZ);
@@ -772,10 +907,8 @@ Game.Screen.ItemListScreen.prototype.setup = function(player, items) {
         if (item) {
             var idx = itemsStacked.findIndex(element => element[0] !== undefined && element[0].getName() == item.getName());
             if (idx !== -1) {
-                //console.log("idx = " + idx + ", stacking existing item");
                 itemsStacked[idx].push(item);
             } else {
-                //console.log("adding new item");
                 itemsStacked.push([item]);
             }
         }
@@ -891,7 +1024,6 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
         }
         
         if (this._hasOptionsMenu && this._optionsOpen) {
-            //console.log("tryna print options");
             var optionsDisplay = [
                 '┌───────── Options ─────────┐',
                 '│  apply [a]     equip [e]  │',
@@ -902,8 +1034,9 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
             if (this._selectedIndices) {
                 var key = Object.keys(this._selectedIndices)[0];
                 item = this._items[key][this._items[key].length - 1];
-                //.log(item.describe());
-                if (item && item.hasMixin('Equippable') && (item == this._player.getWeapon() || item == this._player.getArmor())) {
+                if (item && item.hasMixin('Equippable') && 
+                        (item == this._player.getWeapon() || 
+                         item == this._player.getArmor())) {
                     optionsDisplay = [
                         '┌────────── Options ──────────┐',
                         '│  apply [a]     unequip [e]  │',
@@ -917,7 +1050,7 @@ Game.Screen.ItemListScreen.prototype.render = function(display) {
             var optionsHeight = optionsDisplay.length;
             var optionsX = Math.floor((Game.getMapWidth() / 2) - (optionsWidth / 2)) + Game.getMapOffsetX();
             var optionsY = top + 1;
-            //display.drawText(optionsX, optionsY++, topBar);
+
             display.drawText(optionsX, optionsY, optionsDisplay[0]);
             display.drawText(optionsX, optionsY+1, optionsDisplay[1]);
             display.drawText(optionsX, optionsY+2, optionsDisplay[2]);
@@ -986,7 +1119,6 @@ Game.Screen.ItemListScreen.prototype.handleInput = function(inputType, inputData
             var index = inputData.keyCode - VK_A;
             if (this._hasOptionsMenu && this._optionsOpen) {
                 this._selectedOption = index;
-                //console.log("before call: selectedOption = " + this._selectedOption);
                 this.executeSelectOptionFunction();
             } else if (this._items[index]) {
                 // If multiple selection is allowed, toggle the selection status, else
@@ -1028,25 +1160,17 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
         var option = letters[selectedOption];
         var key = Object.keys(selectedItems)[0];
         var item = selectedItems[key];
-        // console.log("got to inventory selectOption function");
         if (!item) {
             return;
         }
         if (option === 'a') {
             if (item && item.hasMixin('Healing')) {
-                Game.sendMessage(this._player, "You consume %s.", [item.describeThe()]);
+                Game.sendMessage(this._player, "You consume %s.", [item.describeThe()]);         
                 item.consume(this._player);
-                this._player.removeItemByObject(item);
-                var playerItems = this._player.getItems();
-                if (playerItems) {
-                    for (var i = 0; i < playerItems.length; i++) {
-                        if (playerItems[i]) {
-                            //console.log("item " + i + ": " + playerItems[i].getName());
-                        }
-                    }
-                }
+                
+                this._player.removeItemByObject(item);    
                 this._items[key].pop();
-                //this.setup(this._player, this._player.getItems());
+                
                 this._optionsOpen = false;
                 Game.refresh();
             } else if (item && item.hasMixin('Scroll')) { 
@@ -1066,12 +1190,14 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
                 if (item == this._player.getWeapon()) {
                     this._player.unwield();
                     Game.sendMessage(this._player, "You are empty handed.");
+                    
                     this._optionsOpen = false;
                     this._selectedIndices = {};
                     Game.refresh();
                 } else if (item == this._player.getArmor()) {
                     this._player.takeOff();
                     Game.sendMessage(this._player, "You are not wearing anything.");
+                    
                     this._optionsOpen = false;
                     this._selectedIndices = {};
                     Game.refresh();
@@ -1079,6 +1205,7 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
                     this._player.unequip(item);
                     this._player.wield(item);
                     Game.sendMessage(this._player, "You are wielding %s.", [item.describeA()]);
+                    
                     this._optionsOpen = false;
                     this._selectedIndices = {};
                     Game.refresh();
@@ -1086,6 +1213,7 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
                     this._player.unequip(item);
                     this._player.wear(item);
                     Game.sendMessage(this._player, "You are wearing %s.", [item.describeA()]);
+                    
                     this._optionsOpen = false;
                     this._selectedIndices = {};
                     Game.refresh();
@@ -1100,8 +1228,6 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
                 item.describeA(false),
                 item.getDetails()
             ]);
-            //this._optionsOpen = false;
-            //this._selectedIndices = {};
             Game.refresh();
         } else if (option === 'd') {
             //Game.sendMessage(this._player, "You drop %s.", [item.describeThe()]);
@@ -1118,8 +1244,7 @@ Game.Screen.inventoryScreen = new Game.Screen.ItemListScreen({
                     this._player.wear(this._items[key][this._items[key].length-1]);
                 }
             }
-            
-            //this.setup(this._player, this._player.getItems());
+
             this._optionsOpen = false;
             this._selectedIndices = {};
             Game.refresh();
@@ -1242,11 +1367,11 @@ Game.Screen.helpScreen = {
         display.drawText(x, y++, '[Enter] to use stairs/fire bows/activate scrolls');
         display.drawText(x, y++, '[c] to cycle targets while aiming');
         display.drawText(x, y++, '[f] to aim, press again to fire');
-        display.drawText(x, y++, '[h] to quick-heal with an item');
+        display.drawText(x, y++, '[h] to heal with item');
         display.drawText(x, y++, '[i] to open inventory');
         display.drawText(x, y++, '[l] to look around you');
         display.drawText(x, y++, '[s] to use stat points');
-        display.drawText(x, y++, '[5] or [z] to wait a turn');
+        display.drawText(x, y++, '[5] or [.] to wait a turn');
         display.drawText(x, y++, '[?] to show this help screen');
         y ++;
         text = '--- press any key to continue ---';
@@ -1384,13 +1509,10 @@ Game.Screen.TargetBasedScreen.prototype.handleInput = function(inputType, inputD
             this.executeOkFunction();
         }
     } else if (inputType === 'mousemove') {
-        //console.log("Game._screenCellWidth: " + Game._screenCellWidth);
         var x = Math.floor(((inputData.clientX - Game._screenOffsetX) / Game._screenCellWidth) - Game.getMapOffsetX());
         var y = Math.floor(((inputData.clientY - Game._screenOffsetY) / Game._screenCellHeight) - Game.getMapOffsetY());
         if (x !== this._cursorX || y !== this._cursorY) {
-            //console.log("current cursor: " + this._cursorX + ", " + this._cursorY);
             this.moveCursorTo(x, y);
-            //console.log("moving cursor to " + x + ", " + y);
         }
     }
     Game.refresh();
@@ -1400,7 +1522,6 @@ Game.Screen.TargetBasedScreen.prototype.moveCursor = function(dx, dy) {
     
     // Make sure we stay within bounds.
     var newCursorX = Math.max(0, Math.min(this._cursorX + dx, Game.getMapWidth()));
-    // We have to save the last line for the caption.
     var newCursorY = Math.max(0, Math.min(this._cursorY + dy, Game.getMapHeight()));
     
     this._cursorX = newCursorX;
@@ -1411,17 +1532,10 @@ Game.Screen.TargetBasedScreen.prototype.moveCursorTo = function(x, y) {
     
     // Make sure we stay within bounds.
     var newCursorX = Math.max(0, Math.min(x, Game.getMapWidth()));
-    // We have to save the last line for the caption.
     var newCursorY = Math.max(0, Math.min(y, Game.getMapHeight()));
     
     this._cursorX = newCursorX;
     this._cursorY = newCursorY;
-    /*
-    if (this._visibleCells[newCursorX + "," + newCursorY]) {
-        this._cursorX = newCursorX;
-        this._cursorY = newCursorY;
-    }
-    */
 };
 
 Game.Screen.TargetBasedScreen.prototype.cycleCursorTarget = function() {
@@ -1459,17 +1573,16 @@ Game.Screen.lookScreen = new Game.Screen.TargetBasedScreen({
             // If the tile isn't explored, we have to check if we can actually 
             // see it before testing if there's an entity or item.
             if (this._visibleCells[x + ',' + y]) {
-                var items = map.getItemsAt(x, y, z);
+                let items = map.getItemsAt(x, y, z);
                 // If we have items, we want to render the top most item
                 if (items) {
-                    var item = items[items.length - 1];
+                    let item = items[items.length - 1];
                     return sprintf('You see %s. (%s)',
                         item.describeA(false),
                         item.getDetails());
                 // Else check if there's an entity
                 } else if (map.getEntityAt(x, y, z)) {
                     var entity = map.getEntityAt(x, y, z);
-                    //console.log("entity details: " + entity.getDetails())
                     return sprintf('You see %s. (%s)',
                         entity.describeA(false),
                         entity.getDetails());
@@ -1480,18 +1593,22 @@ Game.Screen.lookScreen = new Game.Screen.TargetBasedScreen({
                         map.getTile(x, y, z).getDescription());
                 }
             } else {
+                let items = map.getItemsAt(x, y, z);
+                // If we have items, we want to render the top most item
+                if (items) {
+                    let item = items[items.length - 1];
+                    return sprintf('You remember seeing %s. (%s)',
+                        item.describeA(false),
+                        item.getDetails());
+                }
                 // If the tile is explored but not visible, then use
                 // the tile information.
                 return sprintf('You remember seeing %s.',
                     map.getTile(x, y, z).getDescription());
             }
-            
-
         } else {
             // If the tile is not explored, show the null tile description.
             return '';
-            //return sprintf('You see %s.',
-                //Game.Tile.nullTile.getDescription());
         }
     }
 });
@@ -1515,7 +1632,6 @@ Game.Screen.aimScreen = new Game.Screen.TargetBasedScreen({
                 // Else check if there's an entity
                 } else if (map.getEntityAt(x, y, z)) {
                     var entity = map.getEntityAt(x, y, z);
-                    //console.log("entity details: " + entity.getDetails())
                     return sprintf('You aim at %s (%s)',
                         entity.describeA(false),
                         entity.getDetails());

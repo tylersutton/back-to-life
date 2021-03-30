@@ -11,7 +11,7 @@ Game.MapGen = function(properties) {
     this._maxRoomHeight = properties.maxRoomHeight || this._maxRoomWidth;
     this._tiles = [];
     this._rooms = [];
-    // generate each level
+    // initialize each level
     for (var z = 0; z < this._depth; z++) {
         this._rooms.push([]);
         this._tiles.push([]);
@@ -21,7 +21,6 @@ Game.MapGen = function(properties) {
                 this._tiles[z][x].push(Game.Tile.nullTile);
             }
         }
-        //this.generateLevel(z);
     }
     this.generateLevel(0);
     
@@ -75,7 +74,6 @@ Game.MapGen.prototype.fillBorder = function(z) {
 Game.MapGen.prototype.fillDeadEnds = function(z, maxFills) {
     var map = this._tiles[z];
     if (!this._rooms[z]) {
-        //console.log("failed to fill dead ends: no rooms");
         return;
     }
     var maxCount = maxFills || 1000;
@@ -126,8 +124,7 @@ Game.MapGen.prototype.makeCorridors = function(z, maxCorridors) {
     var rooms = this._rooms[z];
     Game.shuffle(rooms);
     maxCorridors = maxCorridors || Math.floor(rooms.length / 3);
-    //rooms.sort(rooms);
-    //console.log("number of rooms: " + rooms.length);
+
     for (var i = 0; i < rooms.length; i++) {
         var room = rooms[i];
         var doors = this.getDoors(z, room);
@@ -156,11 +153,9 @@ Game.MapGen.prototype.makeCorridor = function(z, room, doors) {
             true
         );
         if (!path) {
-            //console.log('no path to make corridor!');
             return;
         } else {
             count++;
-            //console.log("pushing path " + count);
             paths.push(path);
         }
     }
@@ -174,7 +169,6 @@ Game.MapGen.prototype.makeCorridor = function(z, room, doors) {
     for (let i = 0; i < paths.length; i++) {
         let path = paths[i];
         for (let j = 1; j < path.length - 1; j++) {
-            //console.log("next step: (" + path[j].x + ", " + path[j].y);
             map[path[j].x][path[j].y] = Game.Tile.floorTile;
         }
     } 
@@ -239,19 +233,15 @@ Game.MapGen.prototype.addDoors = function (z, maxDist) {
 
     // for each candidate, turn into wall if distance
     // between neighbors is above threshold
-    //console.log("number of candidates: " + candidates.length);
     var count = 0;
     for (i = 0; i < candidates.length; i++) {
         var dist = Game.findDistance(this._tiles, z, candidates[i].pair[0].x, candidates[i].pair[0].y, 
                                       candidates[i].pair[1].x, candidates[i].pair[1].y);
-        //console.log("distance: " + dist);
         if (dist > maxDist) {
             count++;
             map[candidates[i].x][candidates[i].y] = Game.Tile.doorTile;
-            //console.log("converted (" + candidates[i].x + ", " + candidates[i].y + ") to floor: dist = " + dist);
         }
     }
-    //console.log(count + " candidates converted to floor.");
     return;
 };
 

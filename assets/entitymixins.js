@@ -5,11 +5,11 @@ Game.EntityMixins.PlayerActor = {
     name: 'PlayerActor',
     groupName: 'Actor',
     act: function() {
-        // Detect if the game is over
         if (this._acting) {
             return;
         }
         this._acting = true;
+        // Detect if the game is over
         if (!this.isAlive()) {
             Game.Screen.playScreen.setGameEnded(true);
             // Send a last message to the player
@@ -23,7 +23,13 @@ Game.EntityMixins.PlayerActor = {
         this.getMap().getEngine().lock();
         window.addEventListener("keydown", this); /* wait for input */
         this._acting = false;
+        this._forceManual = false;
     },
+    listeners: {
+        onDamage: function() {
+            this._forceManual = true;
+        }
+    }
 };
 
 Game.EntityMixins.TaskActor = {
@@ -82,7 +88,7 @@ Game.EntityMixins.TaskActor = {
                         this.pickupItems([0]);
                         return;
                     } else if (this.canSeeItem(items[i])) {
-                        path = Game.findShortestPath(map._tiles, this.getZ(), 
+                        path = map.findShortestPath(this.getZ(), 
                         this.getX(), this.getY(), pos[0], pos[1]);
                         if (path) {
                             paths.push(path);
@@ -119,7 +125,7 @@ Game.EntityMixins.TaskActor = {
             }
         }
 
-        var path = Game.findShortestPath(map._tiles, this.getZ(), 
+        var path = map.findShortestPath(this.getZ(), 
                 this.getX(), this.getY(), player.getX(), player.getY());
                 if (path) {
                     this.tryMove(path[1].x, path[1].y, this.getZ());
@@ -272,8 +278,9 @@ Game.EntityMixins.Attacker = {
                 Game.Screen.playScreen._waiting = true;
                 this.getMap().getEngine().lock();
                 var that = this;
-                //Game.sendMessage(this, 'You activate %s.', [scroll.describeThe()]);
+
                 Game.audio.play("scroll");
+                // perform animation, then effect of scroll on contact with target
                 new Game.Arrow({path: path}).go().then(function() {
                     if (target && that != target) {
                         if (target.hasMixin('Mover') && target.isParalyzable()) {
@@ -297,13 +304,12 @@ Game.EntityMixins.Attacker = {
         }
     },
     rangedAttack: function(x, y) {
-        //console.log("called ranged attack.")
+        // don't let the player shoot themself
         if (x === this.getX() && y === this.getY()) {
             Game.sendMessage(this, "You can't shoot yourself!");
             return;
         }
         if (this.hasMixin('Equipper') && this.getWeapon() && this.getWeapon().isRanged()) {
-            //console.log("can shoot a weapon")
             var line = Game.getLine(this.getX(), this.getY(), x, y, true);
             var path = [];
             var target = null;
@@ -323,13 +329,14 @@ Game.EntityMixins.Attacker = {
             var that = this;
             Game.sendMessage(this, 'You fire %s.', [this.getWeapon().describeThe()]);
             Game.audio.play("arrow");
-            
+            // perform arrow animation, then attack target on contact
             new Game.Arrow({path: path}).go().then(function() {
                 if (target && that != target) {
                     that.attack(target);
                 } else {
                     Game.sendMessage(that, "You didn't hit anything.");
                 }
+                //console.log("unlocking after ranged attack");
                 that.getMap().getEngine().unlock();
                 Game.refresh();
                 Game.Screen.playScreen._waiting = false;
@@ -398,6 +405,7 @@ Game.EntityMixins.Destructible = {
     },
     takeDamage: function(attacker, damage) {
         this.setHp(this.getHp() - damage);
+        this.raiseEvent('onDamage');
         // If have 0 or less HP, then remove ourselves from the map
         if (this._hp <= 0) {
             this._hp = 0;
@@ -406,26 +414,8 @@ Game.EntityMixins.Destructible = {
                 this.dropItems();
             }
             this.raiseEvent('onDeath', attacker);
-                attacker.raiseEvent('onKill', this);
-                this.kill();
-            /*
+            attacker.raiseEvent('onKill', this);
             this.kill();
-            // Give the attacker experience points.
-            if (attacker.hasMixin('ExperienceGainer')) {
-                var exp = this.getMaxHp() + this.getDefenseValue();
-                if (this.hasMixin('Attacker')) {
-                    exp += this.getAttackValue();
-                }
-                // Account for level differences
-                if (this.hasMixin('ExperienceGainer')) {
-                    exp -= (attacker.getLevel() - this.getLevel()) * 3;
-                }
-                // Only give experience if more than 0.
-                if (exp > 0) {
-                    attacker.giveExperience(exp);
-                }
-            }
-            */
         }
         else {
             this.scaleForeground(this._hp / this._maxHp);
@@ -469,7 +459,6 @@ Game.EntityMixins.Destructible = {
     listeners: {
         onGainLevel: function() {
             // Heal the entity.
-            //(console.log("filling up HP"));
             this.setHp(this.getMaxHp());
         },
         details: function() {
@@ -768,7 +757,6 @@ Game.EntityMixins.InventoryHolder = {
             if (this._map) {
                 this._map.addItem(this.getX(), this.getY(), this.getZ(), this._items[i]);
             }
-            //console.log("dropped item");
             Game.sendMessage(this, "You drop %s.", [this._items[i].describeThe()]);
             this.removeItem(i);      
         }
@@ -806,9 +794,6 @@ Game.EntityMixins.ExperienceGainer = {
             this._statOptions.push(['Increase defense value by 1', this.increaseDefenseValue]);   
             this._statOptions.push(['Increase max health by 10', this.increaseMaxHp]);
         }
-        //if (this.hasMixin('Sight')) {
-        //    this._statOptions.push(['Increase sight range', this.increaseSightRadius]);
-        //}
     },
     getLevel: function() {
         return this._level;
@@ -826,7 +811,6 @@ Game.EntityMixins.ExperienceGainer = {
     getCurrentLevelProgress: function() {
         var progress = (this._experience - this.getCurrentLevelExperience()) / 
             (this.getNextLevelExperience() - this.getCurrentLevelExperience());
-        //console.log(progress);
         return progress;
     },
     getNextLevelExperience: function() {
@@ -916,7 +900,6 @@ Game.EntityMixins.PlayerStatGainer = {
     groupName: 'StatGainer',
     listeners: {
         onGainLevel: function() {
-            // does nothing...
             Game.audio.play("levelup");
         },
         onUseStats: function() {
@@ -948,7 +931,7 @@ Game.EntityMixins.MessageRecipient = {
             if (this._messages[i] == "YOU FAILED") {
                 this._colors.push("%c{rgb(200,0,0)}");
             }
-            else {
+            else { // formatting for fade-out of messages
                 var val = Math.floor(this._minColor + ((i + this._maxMessages - bottom ) / (this._maxMessages - 1) * (this._maxColor - this._minColor)));
                 var formatString = '%c{rgb(' + val + ',' + val + ',' + (Math.sqrt(val/this._maxColor) * val)   + ')}';
                 this._colors.push(formatString);
