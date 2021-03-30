@@ -1,9 +1,10 @@
 // A repository has a name and a constructor. The constructor is used to create
 // items in the repository.
-Game.Repository = function(name, ctor) {
+Game.Repository = function(name, ctor, lut) {
     this._name = name;
     this._templates = {};
     this._ctor = ctor;
+    this._lut = lut;
     this._randomTemplates = {};
     this._uniqueTemplates = {};
 };

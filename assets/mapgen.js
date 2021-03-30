@@ -22,13 +22,18 @@ Game.MapGen = function(properties) {
             }
         }
     }
-    this.generateLevel(0);
     
+    this.generateLevel(0);
 };
 
 Game.MapGen.prototype.getTiles = function () {
     return this._tiles;
 };
+
+Game.MapGen.prototype.getRooms = function () {
+    return this._rooms;
+};
+
 Game.MapGen.prototype.getDepth = function () {
     return this._depth;
 };
@@ -39,15 +44,20 @@ Game.MapGen.prototype.getHeight = function () {
     return this._height;
 };
 
-Game.MapGen.prototype.generateLevel = function(z) {
+Game.MapGen.prototype.generateLevel = async function(z) {
     this.fillBorder(z);
     this.bsp(1, 1, this._width-2, this._height-2, z);
+    
     this.addDoors(z, 20);
+    Game.shuffle(this._rooms[z]);
+    console.log("shuffled rooms");
     this.fillDeadEnds(z);
     this.makeCorridors(z);
     if (z > 0) {
         this.connectFloor(z);
-    }
+    } 
+    console.log("done generating level");
+    return true;
 };
 
 // lays floor tiles within screen bounds,
@@ -79,7 +89,6 @@ Game.MapGen.prototype.fillDeadEnds = function(z, maxFills) {
     var maxCount = maxFills || 1000;
     var count = 0;
     var rooms = this._rooms[z];
-    Game.shuffle(rooms);
     for (var i = 0; i < rooms.length; i++) {
         var room = rooms[i];
         var doors = this.getDoors(z, room);
@@ -122,7 +131,7 @@ Game.MapGen.prototype.makeCorridors = function(z, maxCorridors) {
     
     var count = 0;
     var rooms = this._rooms[z];
-    Game.shuffle(rooms);
+    //Game.shuffle(rooms);
     maxCorridors = maxCorridors || Math.floor(rooms.length / 3);
 
     for (var i = 0; i < rooms.length; i++) {
@@ -130,7 +139,7 @@ Game.MapGen.prototype.makeCorridors = function(z, maxCorridors) {
         var doors = this.getDoors(z, room);
         if (doors && doors.length >= 2) {
             this.makeCorridor(z, room, doors);
-            this._rooms[z].splice(i, 1);
+            rooms.splice(i, 1);
             i--;
             count++;
             if (count >= maxCorridors) {
@@ -138,6 +147,7 @@ Game.MapGen.prototype.makeCorridors = function(z, maxCorridors) {
             }
         }
     }
+    this._rooms[z] = rooms;
     return;
 };
 

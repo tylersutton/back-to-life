@@ -65,7 +65,6 @@ document.addEventListener('mousemove', function() {
                 } else if (game._currentScreen !== null) {
 	                // Send the event type and data to the screen
 	                game._currentScreen.handleInput(event, e);
-                    
 	            } 
 	        });
 	    };

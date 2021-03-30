@@ -127,12 +127,14 @@ Game.Screen.playScreen = {
         // generate maze of rooms with MapGen
         this._generator = new Game.MapGen(genProps);
         var tiles = this._generator.getTiles();
-        
+        var rooms = this._generator.getRooms();
         // Create our player and set the position
         this._player = new Game.Entity(Game.PlayerTemplate);
         this._player.addItem(Game.ItemRepository.createRandom(0, [Game.ItemMixins.Equippable], null, 'ranged'));
+        
         // Create our map from the tiles
-        var map = new Game.Map.Dungeon(tiles, this._player);
+        let that = this;
+        var map = new Game.Map.Dungeon(tiles, rooms, this._player);
         
         // create random shadows for each tile in map
         this._shadows = [];
@@ -161,6 +163,18 @@ Game.Screen.playScreen = {
     },
     exit: function() { console.log("Exited play screen."); },
     render: function(display) {
+        // Render subscreen if there is one
+        if (this._subScreen && this._subScreen == Game.Screen.helpScreen) {
+            //this.renderMessages(display);
+            this.renderInfoBar(display);
+            this.renderOptionsBar(display);
+            this._subScreen.render(display);
+            return;
+        }
+
+        // Render map tiles
+        this.renderTiles(display, this._subScreen);
+
         // Render player messages
         this.renderMessages(display);
 
@@ -169,15 +183,6 @@ Game.Screen.playScreen = {
 
         // Render player options on bottom of screen
         this.renderOptionsBar(display);
-
-        // Render subscreen if there is one
-        if (this._subScreen && this._subScreen == Game.Screen.helpScreen) {
-            this._subScreen.render(display);
-            return;
-        }
-
-        // Render map tiles
-        this.renderTiles(display, this._subScreen);
 
         // Render active effects
         this.renderEffects(display);
@@ -203,7 +208,7 @@ Game.Screen.playScreen = {
         if (currentDepth < map._depth - 1 && map.getTile(1, 1, currentDepth+1) == Game.Tile.nullTile) {
             this._generator.generateLevel(currentDepth+1);
             this._player.getMap()._tiles.push(this._generator.getTiles()[currentDepth+1]);
-            this._player.getMap().populateDungeon(currentDepth+1, this.player);
+            this._player.getMap().populateDungeon(currentDepth+1, this._player);
             this._player.getMap().setupFov(currentDepth+1);
         }
         // Find all visible cells and update the object
@@ -216,7 +221,8 @@ Game.Screen.playScreen = {
                 visibleCells[x + "," + y] = true;
                 map.setExplored(x, y, currentDepth, true);
                 lightLevel[x + ',' + y] = visibility;
-            });
+        });
+        this._visibleCells = visibleCells;
         // Render the explored map cells
         for (var x = 0; x < mapWidth; x++) {
             for (var y = 0; y < mapHeight; y++) {
@@ -260,7 +266,6 @@ Game.Screen.playScreen = {
                 }
             }
         }
-        this._visibleCells = visibleCells;
     },
     renderEffects: function(display) {
         var map = this._player.getMap();
@@ -340,8 +345,8 @@ Game.Screen.playScreen = {
         );
 
         // Render player's level bar
-        var levelBar = '=========>';
-        var levelBarLength = 10;
+        var levelBar = '======>';
+        var levelBarLength = 7;
 
         var n = Math.round(this._player.getCurrentLevelProgress() * levelBarLength - 1);
         var temp = levelBar.split('');
@@ -353,16 +358,96 @@ Game.Screen.playScreen = {
         var levelStats = 'Lvl: [%c{rgb(50,255,50)}' + this._player.getLevel() + 
             '%c{}' + levelBar + (this._player.getLevel()+1) + ']';
         display.drawText(
-            0,
+            Math.floor((Game.getInfoBarWidth() / 2) - ((levelStats.length - 22) / 2)),
             4,
             levelStats
         );
         var xpAmount = "XP: " + this._player.getExperience();
         display.drawText(
-            0,
+            Math.floor((Game.getInfoBarWidth() / 2) - ((levelStats.length - 22) / 2)) + 1,
             5,
             xpAmount
         );
+        // show info for each visible entity
+        let y = 7;
+        let map = this._player.getMap();
+        var entities = map.getEntitiesWithinRadius(
+            this._player.getX(), 
+            this._player.getY(), 
+            this._player.getZ(), 
+            this._player.getSightRadius()
+        );
+        if (entities) {
+            for (let i = 0; i < entities.length; i++) {
+                let entity = entities[i];
+                if (entity !== this._player && 
+                        this._visibleCells[entity.getX() + ',' + entity.getY()]) {
+                    // Render entity description
+                    let entityDesc = entity.getRepresentation() + 
+                        ': ' + entity.describeA(false);
+                    display.drawText(0, y++, entityDesc);
+                    
+                    // Render entity health
+                    let entityHP = 'Health: ' + entity.getHp() + '/' + entity.getMaxHp();
+                    hpBarLength = Game.getInfoBarWidth() * entity.getHp() / entity.getMaxHp();
+                    display.drawText(
+                        Math.floor((Game.getInfoBarWidth() / 2) - (entityHP.length / 2)), 
+                        y, 
+                        entityHP, 
+                        'white',
+                        'black'
+                    );
+                    for (let i = 0; i < Game.getInfoBarWidth(); i++) {
+                        let scaleFactor = 0.3;
+                        let color = "rgb(80, 49, 122)";
+                        if (i > hpBarLength) {
+                            display.drawOver(i, y, '', null, Game.scaleRGB(color, scaleFactor));
+                        } else if (hpBarLength - i < 1) {
+                            scaleFactor += (hpBarLength - i) * (1 - scaleFactor);
+                            display.drawOver(i, y, '', null, Game.scaleRGB(color, scaleFactor));
+                        } else {
+                            display.drawOver(i, y, '', null, color);
+                        }
+                    }
+                    y++;
+                    // Render entity attack and defense
+                    let entityStats = 
+                        'Atk: ' + entity.getAttackValueWithoutDice() + 
+                        '+d' + entity.getAttackDice() + 
+                        '  Def: ' + entity.getDefenseValue(); 
+                    display.drawText(
+                        Math.floor((Game.getInfoBarWidth() / 2) - (entityStats.length / 2)), 
+                        y++, 
+                        entityStats
+                    );
+                    y++;
+                }
+            }
+        }
+
+        // show info for each visible item
+        let items = this._player.getMap().getItemsWithinRadius(
+            this._player.getX(), 
+            this._player.getY(), 
+            this._player.getZ(), 
+            this._player.getSightRadius()
+        );
+        if (items) {
+            for (let i = 0; i < items.length; i++) {
+                let item = items[i];
+                if (item) {
+                    let itemPos = map.getItemPosition(item);
+                    if (this._visibleCells[itemPos[0] + ',' + itemPos[1]]) {
+                        // Render entity description
+                        let itemRep = item.getRepresentation() + ':';
+                        let itemDesc = ' ' + item.describeA(false);
+                        display.drawText(0, y, itemRep, Game.getInfoBarWidth());
+                        display.drawText(3, y, itemDesc, Game.getInfoBarWidth() - 3);
+                        y += 2;
+                    }
+                }
+            }
+        }
 
         // Render player's current floor
         var currentFloor = this._player.getZ() + 1; 
@@ -371,7 +456,7 @@ Game.Screen.playScreen = {
             Math.floor((Game.getInfoBarWidth() / 2) - (playerFloor.length / 2)), 
             Game.getScreenHeight() - 1, 
             playerFloor
-        );
+        );        
     },
     renderOptionsBar: function(display) {
         var width = Game.getMapWidth();
@@ -383,7 +468,8 @@ Game.Screen.playScreen = {
         var helpButton = "%c{white}Help (%c{rgb(255,255,0)}?%c{white})";
         display.drawText(x, y, helpButton);
         for (let i = x - 1; i < x + helpButton.length - 36 + 1; i++) {
-                if (this._selectedButton == 'helpButton') {
+                if (this._selectedButton == 'helpButton' ||
+                        (this._subScreen && this._subScreen == Game.Screen.helpScreen)) {
                     display.drawOver(i, y, '', null, highlightedButtonColor);
                 } else {
                     display.drawOver(i, y, '', null, buttonColor);
@@ -396,7 +482,8 @@ Game.Screen.playScreen = {
         var inventoryButton = "%c{rgb(255,255,0)}I%c{white}nventory";
         display.drawText(x, y, inventoryButton);
         for (let i = x - 1; i < x + inventoryButton.length - 27 + 1; i++) {
-            if (this._selectedButton == 'inventoryButton') {
+            if (this._selectedButton == 'inventoryButton' ||
+                    (this._subScreen && this._subScreen == Game.Screen.inventoryScreen)) {
                 display.drawOver(i, y, '', null, highlightedButtonColor);
             } else {
                 display.drawOver(i, y, '', null, buttonColor);
@@ -408,7 +495,8 @@ Game.Screen.playScreen = {
         var lookButton = "%c{rgb(255,255,0)}L%c{white}ook";
         display.drawText(x, y, lookButton);
         for (let i = x - 1; i < x + lookButton.length - 27 + 1; i++) {
-            if (this._selectedButton == 'lookButton') {
+            if (this._selectedButton == 'lookButton' ||
+                    (this._subScreen && this._subScreen == Game.Screen.lookScreen)) {
                 display.drawOver(i, y, '', null, highlightedButtonColor);
             } else {
                 display.drawOver(i, y, '', null, buttonColor);
@@ -427,9 +515,9 @@ Game.Screen.playScreen = {
         for (let i = x - 1; i < x + statPoints.length - 27 + 1; i++) {
             if (this._player.getStatPoints() > 0) {
                 if (this._selectedButton == 'statPointsButton') {
-                    display.drawOver(i, y, '', null, highlightedButtonColor);
+                    display.drawOver(i, y, '', null, 'rgb(90, 161, 71)');
                 } else {
-                    display.drawOver(i, y, '', null, buttonColor);
+                    display.drawOver(i, y, '', null, 'rgb(73, 130, 57)');
                 }
             } else {
                 display.drawOver(i, y, '', null, 'rgb(30,30,30)');
@@ -534,6 +622,58 @@ Game.Screen.playScreen = {
                     
                 }
             }
+        }
+        display.drawText(
+            Game.getMapOffsetX(),
+            Game.getScreenHeight() - 2,
+            "%c{rgb(0,220,220)}" + this.getLookCaption()
+        );
+    },
+    getLookCaption: function() {
+        let x = this._cursorX;
+        let y = this._cursorY;
+        let z = this._player.getZ();
+        let map = this._player.getMap();
+        // If the tile is explored, we can give a better capton
+        if (map.isExplored(x, y, z)) {
+            // If the tile isn't explored, we have to check if we can actually 
+            // see it before testing if there's an entity or item.
+            if (this._visibleCells[x + ',' + y]) {
+                let items = map.getItemsAt(x, y, z);
+                // If we have items, we want to render the top most item
+                if (items) {
+                    let item = items[items.length - 1];
+                    return sprintf('You see %s. (%s)',
+                        item.describeA(false),
+                        item.getDetails());
+                // Else check if there's an entity
+                } else if (map.getEntityAt(x, y, z)) {
+                    var entity = map.getEntityAt(x, y, z);
+                    return sprintf('You see %s.',
+                        entity.describeA(false));
+                } else {
+                    // If there was no entity/item or the tile wasn't visible, then use
+                    // the tile information.
+                    return sprintf('You see %s.',
+                        map.getTile(x, y, z).getDescription());
+                }
+            } else {
+                let items = map.getItemsAt(x, y, z);
+                // If we have items, we want to render the top most item
+                if (items) {
+                    let item = items[items.length - 1];
+                    return sprintf('You remember seeing %s. (%s)',
+                        item.describeA(false),
+                        item.getDetails());
+                }
+                // If the tile is explored but not visible, then use
+                // the tile information.
+                return sprintf('You remember seeing %s.',
+                    map.getTile(x, y, z).getDescription());
+            }
+        } else {
+            // If the tile is not explored, show the null tile description.
+            return '';
         }
     },
     moveCursor: function(dx, dy) {
@@ -1349,7 +1489,7 @@ Game.Screen.helpScreen = {
         var text =   'Back to Life! - Help';
         var border = '--------------------';
         var x = Game.getMapOffsetX();
-        var y = Game.getMapOffsetY();
+        var y = 1;
         /*
         for (let i = x; i < i + Game.getMapWidth(); i++) {
             for (let j = y; j < y + Game.getMapHeight(); j++) {
@@ -1475,7 +1615,7 @@ Game.Screen.TargetBasedScreen.prototype.render = function(display) {
     // Render the caption at the bottom.
     this._caption = this._captionFunction(this._cursorX, this._cursorY);
     display.drawText(
-        Game.getMapOffsetX() + 1,
+        Game.getMapOffsetX(),
         Game.getScreenHeight() - 2,
         "%c{rgb(0,220,220)}" + this._caption
     );
@@ -1583,9 +1723,8 @@ Game.Screen.lookScreen = new Game.Screen.TargetBasedScreen({
                 // Else check if there's an entity
                 } else if (map.getEntityAt(x, y, z)) {
                     var entity = map.getEntityAt(x, y, z);
-                    return sprintf('You see %s. (%s)',
-                        entity.describeA(false),
-                        entity.getDetails());
+                    return sprintf('You see %s.',
+                        entity.describeA(false));
                 } else {
                     // If there was no entity/item or the tile wasn't visible, then use
                     // the tile information.

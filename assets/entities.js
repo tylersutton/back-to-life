@@ -4,9 +4,9 @@ Game.PlayerTemplate = {
     character: '@',
     foreground: 'white',
     maxHp: 50,
-    baseAttackValue: 5,
-    attackDice: 4,
-    sightRadius: 15,
+    baseAttackValue: 3,
+    attackDice: 6,
+    sightRadius: 12,
     inventorySlots: 25,
     mixins: [Game.EntityMixins.PlayerActor, Game.EntityMixins.InventoryHolder,
              Game.EntityMixins.Attacker, Game.EntityMixins.Destructible,
@@ -15,17 +15,56 @@ Game.PlayerTemplate = {
              Game.EntityMixins.ExperienceGainer, Game.EntityMixins.PlayerStatGainer]
 };
 
-Game.EntityRepository = new Game.Repository('entities', Game.Entity);
+Game.EntityRepository = new Game.Repository('entities', Game.Entity, Game.LevelEntityTables);
+
+Game.EntityRepository.define('Rat', {
+    name: 'Rat',
+    character: 'r',
+    foreground: 'rgb(200,100,100)',
+    maxHp: 12,
+    baseAttackValue: 1,
+    attackDice: 2,
+    speed: 1000,
+    sightRadius: 10,
+    inventorySlots: 0,
+    minZLevel: 0,
+    maxZLevel: 2,
+    tasks: ['hunt', 'wander'],
+    mixins: [Game.EntityMixins.TaskActor,
+        Game.EntityMixins.Attacker, Game.EntityMixins.Destructible, 
+        Game.EntityMixins.Sight, Game.EntityMixins.Mover,
+        Game.EntityMixins.ExperienceGainer, Game.EntityMixins.RandomStatGainer]
+
+});
+
+Game.EntityRepository.define('Imp', {
+    name: 'Imp',
+    character: 'i',
+    foreground: 'rgb(200,100,200)',
+    maxHp: 12,
+    baseAttackValue: 1,
+    attackDice: 2,
+    speed: 2000,
+    sightRadius: 10,
+    inventorySlots: 0,
+    minZLevel: 0,
+    maxZLevel: 2,
+    tasks: ['hunt', 'wander'],
+    mixins: [Game.EntityMixins.TaskActor,
+             Game.EntityMixins.Attacker, Game.EntityMixins.Destructible, 
+             Game.EntityMixins.Sight, Game.EntityMixins.Mover,
+             Game.EntityMixins.ExperienceGainer, Game.EntityMixins.RandomStatGainer]
+});
 
 Game.EntityRepository.define('Greedy Ghost', {
     name: 'Greedy Ghost',
     character: 'g',
     foreground: 'rgb(100,200,200)',
-    maxHp: 15,
-    baseAttackValue: 4,
+    maxHp: 25,
+    baseAttackValue: 2,
     attackDice: 4,
     speed: 1000,
-    sightRadius: 4,
+    sightRadius: 10,
     inventorySlots: 1,
     minZLevel: 0,
     //maxZLevel: 5,
@@ -44,7 +83,7 @@ Game.EntityRepository.define('Goblin', {
     baseAttackValue: 8,
     attackDice: 6,
     speed: 800,
-    sightRadius: 3,
+    sightRadius: 5,
     minZLevel: 4,
     tasks: ['hunt', 'wander'],
     mixins: [Game.EntityMixins.TaskActor,
@@ -61,32 +100,13 @@ Game.EntityRepository.define('Demon', {
     baseAttackValue: 10,
     attackDice: 6,
     speed: 1000,
-    sightRadius: 5,
+    sightRadius: 8,
     minZLevel: 10,
     tasks: ['hunt', 'wander'],
     mixins: [Game.EntityMixins.TaskActor,
         Game.EntityMixins.Attacker, Game.EntityMixins.Destructible, 
         Game.EntityMixins.Sight, Game.EntityMixins.Mover,
         Game.EntityMixins.ExperienceGainer, Game.EntityMixins.RandomStatGainer]
-});
-
-Game.EntityRepository.define('Imp', {
-    name: 'Imp',
-    character: 'i',
-    foreground: 'rgb(200,100,200)',
-    maxHp: 5,
-    baseAttackValue: 2,
-    attackDice: 3,
-    speed: 2000,
-    sightRadius: 5,
-    inventorySlots: 0,
-    minZLevel: 0,
-    maxZLevel: 2,
-    tasks: ['hunt', 'wander'],
-    mixins: [Game.EntityMixins.TaskActor,
-             Game.EntityMixins.Attacker, Game.EntityMixins.Destructible, 
-             Game.EntityMixins.Sight, Game.EntityMixins.Mover,
-             Game.EntityMixins.ExperienceGainer, Game.EntityMixins.RandomStatGainer]
 });
 
 Game.EntityRepository.define('Ruler', {

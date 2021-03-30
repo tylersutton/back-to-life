@@ -123,13 +123,16 @@ Game.EntityMixins.TaskActor = {
                 this.attack(player);
                 return;
             }
+        } if (this.hasMixin('Equipper') && 
+                this.getWeapon() && this.getWeapon().isRanged()) {
+            this.rangedAttack(player);
         }
 
         var path = map.findShortestPath(this.getZ(), 
                 this.getX(), this.getY(), player.getX(), player.getY());
-                if (path) {
+        if (path) {
                     this.tryMove(path[1].x, path[1].y, this.getZ());
-                }
+        }
     },
     wander: function() {
         dx = Math.round(Math.random() * 2 - 1);
@@ -238,7 +241,7 @@ Game.EntityMixins.Attacker = {
         this._baseAttackValue += value;
         Game.sendMessage(this, "You look stronger!");
     },
-    attack: function(target) {
+    attack: function(target, melee) {
         // If the target is destructible, calculate the damage
         // based on attack and defense value
         if (this != target && target.hasMixin('Destructible')) {
@@ -247,6 +250,9 @@ Game.EntityMixins.Attacker = {
             var damage;
             if (attack == 0) {
                 damage = 0;
+            } else if (melee && this.hasMixin('Equipper') && 
+                    this.getWeapon() && this.getWeapon().isRanged()) {
+                attack -= this.getWeapon().getAttackValue();
             }
             else {
                 damage = Math.max(0, Math.round(attack * attack / (attack + defense)));
@@ -332,7 +338,7 @@ Game.EntityMixins.Attacker = {
             // perform arrow animation, then attack target on contact
             new Game.Arrow({path: path}).go().then(function() {
                 if (target && that != target) {
-                    that.attack(target);
+                    that.attack(target, false); // disable melee flag
                 } else {
                     Game.sendMessage(that, "You didn't hit anything.");
                 }
@@ -359,7 +365,7 @@ Game.EntityMixins.Destructible = {
         // the entity to start with a different amount of HP than the 
         // max specified.
         this._hp = template.hp || this._maxHp;
-        this._defenseValue = template.defenseValue || 0;
+        this._defenseValue = template.defenseValue || 1;
         this._canHeal = (template.canHeal !== undefined) ?
             template.canHeal : true;
         this._healingFactor = template.healingFactor || 1;

@@ -1,4 +1,4 @@
-Game.ItemRepository = new Game.Repository('items', Game.Item);
+Game.ItemRepository = new Game.Repository('items', Game.Item, Game.LevelItemTables);
 
 //#region Healing Items
 Game.ItemRepository.define('soulVial', {
@@ -39,8 +39,8 @@ Game.ItemRepository.define('dagger', {
 
 Game.ItemRepository.define('axe', {
     name: 'axe',
-    character: '=',
-    foreground: '(rgb(175,175,175)',
+    character: '\\',
+    foreground: 'rgb(175,175,175)',
     attackValue: 2,
     wieldable: true,
     circleAttack: true,
@@ -112,7 +112,7 @@ Game.ItemRepository.define('woodenStaff', {
 });
 
 Game.ItemRepository.define('ironStaff', {
-    name: 'wooden staff',
+    name: 'iron staff',
     character: '_',
     foreground: 'yellow',
     attackValue: 3,
@@ -126,7 +126,7 @@ Game.ItemRepository.define('ironStaff', {
 });
 
 Game.ItemRepository.define('steelStaff', {
-    name: 'wooden staff',
+    name: 'steel staff',
     character: '_',
     foreground: 'yellow',
     attackValue: 5,

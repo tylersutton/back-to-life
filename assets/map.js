@@ -1,7 +1,8 @@
 /*jshint esversion: 8 */
 
-Game.Map = function(tiles) {
+Game.Map = function(tiles, rooms) {
     this._tiles = tiles;
+    this._rooms = rooms;
     // cache the width, height, and depth based
     // on the length of the dimensions of
     // the tiles array
@@ -137,6 +138,36 @@ Game.Map.prototype.getRandomFloorPosition = function(z) {
     return {x: x, y: y, z: z};
 };
 
+Game.Map.prototype.getRandomFloorInRoom = function(z, roomIndex) {
+    var x, y;
+    var left = this._rooms[z][roomIndex].left + 2;
+    var top  = this._rooms[z][roomIndex].top + 2;
+    var w    = this._rooms[z][roomIndex].w - 4;
+    var h    = this._rooms[z][roomIndex].h - 4;
+    do {
+        x = Math.floor((Math.random() * w) + left);
+        y = Math.floor((Math.random() * h) + top);
+    } while(!this.isEmptyFloor(x, y, z));
+    return {x: x, y: y, z: z};
+};
+
+Game.Map.prototype.getRoom = function(x, y, z) {
+    var rooms = this._rooms[z];
+    let left, top, w, h;
+    for (let i = 0; i < rooms.length; i++) {
+        left = rooms[i].left + 1;
+        top  = rooms[i].top + 1;
+        w    = rooms[i].w - 2;
+        h    = rooms[i].h - 2;
+        if (x >= left && x < left + w &&
+                y >= top && y < top + h) {
+            console.log("got room[" + i + "] => { left: " + left + ", top: " + top + ", w: " + w + ", h: " + h + "}");
+            return i;
+        }
+    }
+    return -1;
+};
+
 Game.Map.prototype.getEngine = function() {
     return this._engine;
 };
@@ -174,8 +205,13 @@ Game.Map.prototype.addEntity = function(entity) {
     }
 };
 
-Game.Map.prototype.addEntityAtRandomPosition = function(entity, z) {
-    var position = this.getRandomFloorPosition(z);
+Game.Map.prototype.addEntityAtRandomPosition = function(entity, z, roomIndex) {
+    var position;
+    if (roomIndex !== undefined) {
+        position = this.getRandomFloorInRoom(z, roomIndex);
+    } else {
+        position = this.getRandomFloorPosition(z);
+    }
     entity.setX(position.x);
     entity.setY(position.y);
     entity.setZ(position.z);
@@ -197,11 +233,11 @@ Game.Map.prototype.getEntitiesWithinRadius = function(centerX, centerY, z, radiu
         if (!entity) {
         } else if (typeof(entity) === 'function') {
             // don't want this
-        } else if (entity.getX() < leftX ||
+        } else if (entity.getZ() !== z ||
+                    entity.getX() < leftX ||
                     entity.getX() > rightX ||
                     entity.getY() < topY ||
-                    entity.getY() > bottomY ||
-                    entity.getZ() !== z) {
+                    entity.getY() > bottomY) {
             // don't want this either
         }
         else {
@@ -303,8 +339,8 @@ Game.Map.prototype.addItem = function(x, y, z, item) {
     }
 };
 
-Game.Map.prototype.addItemAtRandomPosition = function(item, z) {
-    var position = this.getRandomFloorPosition(z);
+Game.Map.prototype.addItemAtRandomPosition = function(item, z, roomIndex) {
+    var position = this.getRandomFloorPosition(z, roomIndex);
     this.addItem(position.x, position.y, position.z, item);
 };
 
